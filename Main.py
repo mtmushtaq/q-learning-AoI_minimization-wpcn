@@ -27,7 +27,7 @@ dist_max = 10
 s_AAOI = []
 Gain = []
 Th= 0.2
-iterations = 10
+iterations = 100
 Frame_size = []
 STD_AoI_u_AT = []
 STD_AoI_u_BT = []
@@ -202,16 +202,13 @@ def get_row(pw, ch):
         row = 47
         return row
 
-def get_rew(act):
+def get_rew(B_AOI, A_AOI, BT, act):
+    D_AOI = B_AOI - A_AOI
     rew = 0
-    if act == 0:
-        rew= -5
-    elif action == 1:
-        rew = 5
-    elif action == 2:
-        rew = 7
-    elif action == 3:
-        rew = 9
+    if act == BT:
+        rew = D_AOI + act
+    elif act < BT:
+        rew = D_AOI + (act/2)
     return rew
 
 
@@ -247,7 +244,7 @@ K_factor =  10
 min_epsilon = 0.1
 max_epsilon = 0.7
 decay_rate = 0.0001
-upsilon = 0.05 # One unit to transmit one replica
+upsilon = 0.005 # One unit to transmit one replica
 users = []
 for i in range(number_of_users):  # popola il vettore degli utenti
     # users[i] = i + 1
@@ -271,7 +268,9 @@ for it_ind in range(0, iterations):
     BT_Dis = np.empty(number_of_users, dtype=int)  # to save discrete battery capacity of all users at current iteration/frame
     CH_Raw = np.empty(number_of_users, dtype=complex)  # to save raw channel gamma of all users at current iteration/frame
     CH_Dis = np.empty(number_of_users, dtype=int)  # to save discrete channel gamma of all users at current iteration/frame
-    G_Raw = np.empty(number_of_users, dtype=float)
+    G_Raw = np.empty(number_of_users, dtype=float) # to save Gamma of current frame
+    AC_users = np.empty(number_of_users, dtype=int) #to save action in current frame for reward calculation
+    Rew_U = np.empty(number_of_users, dtype=float)  #
     #Calculate the channel and update battery for current frame
     #for u in range (np.size(users)):
 
@@ -288,9 +287,12 @@ for it_ind in range(0, iterations):
         if randx >= epsilon: #Random Action Selection
             explore += 1
             bt_units = users[d].BT_units()
+            if bt_units > number_of_slots:
+                bt_units = number_of_slots
             prob_dist = get_distr(bt_units)
             if bt_units == 0:
                 slot_aloc_f [d,:] = np.zeros ((1, number_of_slots), dtype=int)
+                AC_users [d] = 0
                 #print(f"Random Action of User {d} is {0}")
             else:
                 range_slot = np.array(range(0, number_of_slots), dtype=int) # to ask it to make a choice between first and last slot
@@ -298,6 +300,8 @@ for it_ind in range(0, iterations):
                 user_action = np.random.choice(range_action, size=1, p=prob_dist) # choose an action based on prob_dist
                 slot_indices = np.random.choice(range_slot, size=user_action, replace=False) #choose random slots to send the packet
                 slot_aloc_f[d, slot_indices] = 1  #Make selected slots 1 for user's row
+                users[d].decrease_EH(user_action)
+                AC_users[d] = user_action[0]
                 #print(f"Random Action of User {d} is {user_action}")
             #slot_aloc_f [d-1, :]
             #reward[d][it_ind] = get_rew(action)
@@ -339,6 +343,8 @@ for it_ind in range(0, iterations):
                     action= BT_Dis[d]
                 ind_u = rd.sample(range(number_of_slots), action)
                 slot_aloc_f[d , ind_u] = 1
+                users[d].decrease_EH(action) #update battery
+            AC_users[d] = action
             #print(f"take action: {action}")
             #reward[d][it_ind] = get_rew(action)
             # Remove action unit of energy from total energy
@@ -354,9 +360,11 @@ for it_ind in range(0, iterations):
             pw_u = compute_energy_harvested(G_Raw[u], time_duration, p)
             users[u].add_EH(pw_u)
     # apply SIC
-    decoded_users = capture_effect_SIC_realtime(slot_aloc_f, number_of_slots, number_of_users, G_Raw, verbose=True)
-    #Successive_IC (u.size, slot_aloc_f, number_of_slots ) # Rearly-n method
-    Bf_aoi = np.ones(number_of_users, dtype=int) #Before update
+    decoded_users = capture_effect_SIC_realtime(slot_aloc_f, number_of_slots, number_of_users, G_Raw, verbose=False) # Rearly-n method
+
+    #Calculate AOI
+    Bf_aoi = np.ones(number_of_users, dtype=int)  # Before AOI update
+    Af_aoi = np.ones(number_of_users, dtype=int)  # After AOI update
     for u in range(number_of_users):
         Bf_aoi [u] = users[u].AOI
         Recovery = decoded_users [u, 0]
@@ -365,6 +373,16 @@ for it_ind in range(0, iterations):
             users[u].AOI = Bf_aoi [u] + number_of_slots
         else:
             users[u].AOI = Recovery - Tx_slot + 1
+        Af_aoi[u] = users[u].AOI
+        Rew_U [u] = get_rew (Bf_aoi [u], Af_aoi[u] , BT_Dis[u] , AC_users[u])
         print(f"user {u} AOI is {users[u].AOI}")
+        print(f"user {u} BT is {users[u].battery_level}")
+        print(f"user {u} REW is {Rew_U [u]}")
+
+
+    #Get new State and update Q-Table
+    
+    #Calculate Reward
+
     # Update AOI using current frame AOI and add it into next frame AOI so that it can be used for next frame
     #Update Next State

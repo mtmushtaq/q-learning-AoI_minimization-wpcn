@@ -4,7 +4,7 @@ import math
 # User class definition
 class User:
 
-    def __init__(self, id: int, mu=0.05, initial_battery_level=0.05, AOI = 1):
+    def __init__(self, id: int, mu=0.005, initial_battery_level=0.05, AOI = 1):
         self.id = id
         self.mu = mu
         self.battery_level = initial_battery_level
