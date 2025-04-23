@@ -13,21 +13,21 @@ from pandas import DataFrame
 
 # This code with an optimized Learning rate= 0.5, But we need to find the value of Epsilon for good convergence
 # define training parameters
-discount_factor = 0.99  # 0.001
+discount_factor = 0.95  # 0.001
 test = 0
-learning_rate = 0.0001
+learning_rate = 0.01
 #define system parameters
 mu_bu= 0.05 # one unit of battery
-number_of_slots = 3
-number_of_users = 10
+number_of_slots = 18
+number_of_users = 15
 time_duration = 0.01
 p= 4.6
 dist_min = 1
-dist_max = 10
+dist_max = 30
 s_AAOI = []
 Gain = []
 Th= 0.2
-iterations = 100
+iterations = 10000
 Frame_size = []
 STD_AoI_u_AT = []
 STD_AoI_u_BT = []
@@ -38,7 +38,7 @@ STD_AoI_u_BT = []
 # q_tables = np.zeros (k.size * x.size, a.size)
 k = np.array([0, 1, 2, 3, 4, 5])  # possible power values
 x = np.array([0, 1, 2, 3, 4, 5, 6, 7])  # channel quality information
-a = np.array([0, 1, 2, 3, 4])
+a = np.array([0, 1, 2, 3, 4, 5])
 
 # S = ((), dtype=float)
 #S = np.zeros((u.size, k.size, x.size), dtype=int)
@@ -206,9 +206,9 @@ def get_rew(B_AOI, A_AOI, BT, act):
     D_AOI = B_AOI - A_AOI
     rew = 0
     if act == BT:
-        rew = D_AOI + act
-    elif act < BT:
         rew = D_AOI + (act/2)
+    elif act < BT:
+        rew = D_AOI + (2* act)
     return rew
 
 
@@ -241,10 +241,10 @@ K_factor =  10
 #discount_factor = 0.9
 #learning_rate = 0.001
 # step_size_ep= (1-0.4)/iterations
-min_epsilon = 0.1
-max_epsilon = 0.7
+min_epsilon = 0.01
+max_epsilon = 0.99
 decay_rate = 0.0001
-upsilon = 0.005 # One unit to transmit one replica
+upsilon = 0.01 # One unit to transmit one replica
 users = []
 for i in range(number_of_users):  # popola il vettore degli utenti
     # users[i] = i + 1
@@ -253,12 +253,13 @@ for i in range(number_of_users):  # popola il vettore degli utenti
 q_tables = np.empty([number_of_users, k.size * x.size, a.size], dtype=float)
 for user in range(np.size(users)):
     q_tables[user, :, :] = np.random.rand(k.size * x.size, a.size)
-print(q_tables)
+print(f"first Q Table {q_tables}")
 
+AOI_users = np.empty((iterations, number_of_users), dtype=int)
 #print(q_tables)
 # print(f"All State matrix {S}")
 for it_ind in range(0, iterations):
-    print(f"Iteration: {it_ind}")
+    #print(f"Iteration: {it_ind}")
     epsilon = min_epsilon + (max_epsilon - min_epsilon) * np.exp(-decay_rate * it_ind)
     epsilon = round(epsilon, 5)
     slot_aloc_f = np.zeros ((np.size(users), number_of_slots), dtype=int)
@@ -281,7 +282,7 @@ for it_ind in range(0, iterations):
         users[d].channel = CH_Raw[d]
         G_Raw[d] = gamma_EH(CH_Raw[d], dist_min, dist_max)
         BT_Dis[d] = users[d].BT_units()
-        CH_Dis [d] = get_channel(CH_Raw[d])
+        CH_Dis [d] = get_channel(G_Raw[d])
         randx = np.random.random()
         randx = round(randx, 5)
         if randx >= epsilon: #Random Action Selection
@@ -298,6 +299,8 @@ for it_ind in range(0, iterations):
                 range_slot = np.array(range(0, number_of_slots), dtype=int) # to ask it to make a choice between first and last slot
                 range_action = np.array(range(1, len(prob_dist)+1), dtype=int) # to choose an action between 1 and max_battery unit with prob_dist
                 user_action = np.random.choice(range_action, size=1, p=prob_dist) # choose an action based on prob_dist
+                if user_action > a.size:
+                    user_action  = a.size
                 slot_indices = np.random.choice(range_slot, size=user_action, replace=False) #choose random slots to send the packet
                 slot_aloc_f[d, slot_indices] = 1  #Make selected slots 1 for user's row
                 users[d].decrease_EH(user_action)
@@ -339,6 +342,8 @@ for it_ind in range(0, iterations):
             else:
                 if action > number_of_slots:
                     action = number_of_slots
+                if action > a.size:
+                    action  = a.size
                 if action > BT_Dis[d]:
                     action= BT_Dis[d]
                 ind_u = rd.sample(range(number_of_slots), action)
@@ -375,14 +380,51 @@ for it_ind in range(0, iterations):
             users[u].AOI = Recovery - Tx_slot + 1
         Af_aoi[u] = users[u].AOI
         Rew_U [u] = get_rew (Bf_aoi [u], Af_aoi[u] , BT_Dis[u] , AC_users[u])
-        print(f"user {u} AOI is {users[u].AOI}")
-        print(f"user {u} BT is {users[u].battery_level}")
-        print(f"user {u} REW is {Rew_U [u]}")
+        #print(f"user {u} AOI is {users[u].AOI}")
+        #print(f"user {u} BT is {users[u].battery_level}")
+        #print(f"user {u} REW is {Rew_U [u]}")
 
+    AOI_users [it_ind, :] = Af_aoi
 
     #Get new State and update Q-Table
-    
-    #Calculate Reward
+    BT_Dis_next = np.empty(number_of_users, dtype=int)  # to save discrete battery capacity of all users at current iteration/frame
+    CH_Raw_next = np.empty(number_of_users, dtype=complex)  # to save raw channel gamma of all users at current iteration/frame
+    CH_Dis_next = np.empty(number_of_users, dtype=int)  # to save discrete channel gamma of all users at current iteration/frame
+    G_Raw_next = np.empty(number_of_users, dtype=float)  # to save Gamma of current frame
+
+    for u in range(number_of_users):
+        CH_Raw_next[u] = generate_rician_fading(K_factor)
+        users[u].channel = CH_Raw_next[u]
+        G_Raw_next[u] = gamma_EH(CH_Raw_next[u], dist_min, dist_max)
+        BT_Dis_next[u] = users[u].BT_units()
+        CH_Dis_next[u] = get_channel(G_Raw[u])
+        row_act = get_row(BT_Dis_next[u], CH_Dis_next[u])
+        best_next_action_value = q_tables[u][row_act][:].max()
+        temporal_difference = Rew_U[u] + discount_factor * best_next_action_value - q_tables[u, row_act, AC_users[u]]
+        q_tables[u, row_act, AC_users[u]] += learning_rate * temporal_difference
+
+    #Collect AOI
 
     # Update AOI using current frame AOI and add it into next frame AOI so that it can be used for next frame
     #Update Next State
+
+print(f"Last Q Table {q_tables}")
+
+AOI_mean  = np.mean(AOI_users, axis=1)
+
+import matplotlib.pyplot as plt
+
+xv = np.linspace(0, iterations - 1, iterations)
+fig, ax = plt.subplots(1, 1)
+ax.plot(xv, pd.Series(AOI_mean).ewm(span=100).mean(), 'b-', lw=1, alpha=1, label=f'Average AoI S= {number_of_slots}, U = {number_of_users}')  # AoI medio del sistema per ogni iterazione
+#ax.plot(xv, np.mean(AAOI_all[1, :, :], axis=0), 'k--', lw=1, alpha=1, label=f'Average AoI S= {n_slot-14}, U = {number_of_users}')  # AoI medio del sistema per ogni iterazione
+#ax.plot(xv, np.mean(AAOI_all[4, :, :], axis=0), 'm*', lw=1, alpha=1, label=f'Average AoI S= {n_slot-28}, U = {number_of_users}')  # AoI medio del sistema per ogni iterazione
+# ax.plot(xv, xv, AAOI_all [1, :], 'r--', lw=2, alpha=0.6, label ='AoI per Iteration S= 10, U-2') # AAoI cumulativo normalizzato, calcolato dividendo summ_AAoI per il numero di iterazioni considerate fino a quel punto
+ax.set_title('AoI Evolvement vs Iterations')
+ax.set_ylabel('Average AoI')
+ax.set_xlabel('Iterations')
+ax.legend()
+plt.tight_layout()
+#fig.show()
+ax.grid(True)
+plt.show()
