@@ -1,0 +1,106 @@
+            if S[d][0][0] > 0.5:
+                Pww= 1
+            else:
+                Pww = 0
+            if S[d][0][1] > 0.5:
+                CHH = 1
+            else:
+                CHH = 0
+            next_row = get_row(Pww, CHH)
+            value = q_tables[d - 1][next_row][0:3].max()
+            temporal_difference = reward[d-1][it_ind] + (discount_factor * q_tables[d - 1][next_row].max())
+            new_q_value = (1 - learning_rate) * value + (learning_rate * temporal_difference)  # BELLMAN EQUATION TO UPDATE Q_VALUE
+            v = new_q_value.astype(float)
+            # new_value = int(v.round())
+            q_tables[d - 1][next_row][action] = v
+
+
+
+        def capture_effect(slot_aloc_f, number_of_slots, number_of_users, G_raw):
+    # Initialize output: each user per slot marked 1 if decoded
+    decoded_users = np.zeros((number_of_users, number_of_slots), dtype=int)
+
+    for slot in range(number_of_slots):
+        # Get all users transmitting in this slot
+        users_in_slot = np.where(slot_aloc_f[:, slot] == 1)[0]
+
+        if len(users_in_slot) == 0:
+            continue  # No transmission in this slot
+
+        # Get their corresponding G_raw values
+        G_values = G_raw[users_in_slot]
+
+        # Identify user with maximum G_raw
+        max_idx = np.argmax(G_values)
+        max_user = users_in_slot[max_idx]
+        max_value = G_values[max_idx]
+
+        # Compute sum of other users' G_raw values
+        sum_others = np.sum(G_values) - max_value
+
+        # Apply capture effect condition
+        if max_value > sum_others:
+            decoded_users[max_user, slot] = 1  # Mark this user as decoded in this slot
+
+    return decoded_users
+
+
+# def Successive_IC (users_total, d_matrix, slots, channel):
+# dec_u = np.zeros ()
+ #   for i in range (slots):
+
+
+
+def capture_effect_SIC(slot_aloc_f, number_of_slots, number_of_users, G_raw):
+    slot_aloc_f = slot_aloc_f.copy()  # Avoid changing original
+    decoded_users = -1 * np.ones((number_of_users,), dtype=int)  # -1 means undecoded
+
+    while True:
+        progress = False  # Track if anything new was decoded in this round
+
+        # --- Step 1: Apply Capture Effect ---
+        for slot in range(number_of_slots):
+            # Find users transmitting in this slot
+            users_in_slot = np.where(slot_aloc_f[:, slot] == 1)[0]
+
+            # Exclude already decoded users
+            users_in_slot = [u for u in users_in_slot if decoded_users[u] == -1]
+
+            if len(users_in_slot) == 0:
+                continue
+
+            G_values = G_raw[users_in_slot]
+            max_idx = np.argmax(G_values)
+            max_user = users_in_slot[max_idx]
+            max_value = G_values[max_idx]
+            sum_others = np.sum(G_values) - max_value
+
+            if max_value > sum_others and decoded_users[max_user] == -1:
+                decoded_users[max_user] = slot  # Save the slot where it was decoded
+                # Remove all replicas of this user
+                slot_aloc_f[max_user, :] = 0
+                progress = True
+
+        # --- Step 2: Successive Interference Cancellation (SIC) ---
+        while True:
+            slot_sums = np.sum(slot_aloc_f, axis=0)  # sum across users for each slot
+            single_user_slots = np.where(slot_sums == 1)[0]
+
+            new_decode_found = False
+
+            for slot in single_user_slots:
+                user = np.where(slot_aloc_f[:, slot] == 1)[0][0]  # only one user
+                if decoded_users[user] == -1:
+                    decoded_users[user] = slot  # mark user as decoded
+                    slot_aloc_f[user, :] = 0    # remove all replicas
+                    new_decode_found = True
+                    progress = True
+
+            if not new_decode_found:
+                break  # no more SIC decoding possible in this round
+
+        if not progress:
+            break  # nothing new decoded this full iteration
+
+    return decoded_users
+
