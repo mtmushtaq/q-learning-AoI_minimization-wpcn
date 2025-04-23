@@ -335,6 +335,8 @@ for it_ind in range(0, iterations):
             else:
                 if action > number_of_slots:
                     action = number_of_slots
+                if action > BT_Dis[d]:
+                    action= BT_Dis[d]
                 ind_u = rd.sample(range(number_of_slots), action)
                 slot_aloc_f[d , ind_u] = 1
             #print(f"take action: {action}")
