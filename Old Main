@@ -14,24 +14,23 @@ from pandas import DataFrame
 # This code with an optimized Learning rate= 0.5, But we need to find the value of Epsilon for good convergence
 # define training parameters
 discount_factor = 0.95  # 0.001
-test = 1
+test = 2
 learning_rate = 0.0001
 #define system parameters
 mu_bu= 0.05 # one unit of battery
 number_of_slots = 50
 number_of_users = 25
-time_duration = 0.01
+time_duration = 0.05
 p= 4.6
 dist_min = 1
 dist_max = 30
 s_AAOI = []
 Gain = []
 Th= 0.2
-iterations = 50000
+iterations = 10000
 Frame_size = []
 STD_AoI_u_AT = []
 STD_AoI_u_BT = []
-Batch_size = 500
 
 #u = np.empty(number_of_users, dtype=object)  # define users array
 #for i in range(number_of_users):
@@ -238,7 +237,7 @@ AOI = np.zeros((number_of_users, iterations+1), dtype=int)
 it_ind = 0
 explore = 0
 exploit = 0
-K_factor =  12
+K_factor =  15
 #discount_factor = 0.9
 #learning_rate = 0.001
 # step_size_ep= (1-0.4)/iterations
@@ -260,8 +259,7 @@ AOI_users = np.empty((iterations*test, number_of_users), dtype=int)
 G = np.empty(test, dtype = float)
 for t in range(1, test+1):
     min_epsilon = 0.1
-    max_epsilon = 0.7
-    #Battery_Ch = np.empty((iterations, number_of_users, 2), dtype=float)  # To save state of all users in current frame
+    max_epsilon = 0.4
     #q_tables = np.empty([number_of_users, k.size * x.size, a.size], dtype=float)
     #for user in range(np.size(users)):
      #   q_tables[user, :, :] = np.random.rand(k.size * x.size, a.size)
@@ -393,22 +391,22 @@ for t in range(1, test+1):
 
         AOI_users [t*it_ind, :] = Af_aoi
 
-        if (it_ind + 1) % Batch_size == 0:
-            # Get new State and update Q-Table
-            BT_Dis_next = np.empty(number_of_users, dtype=int)  # to save discrete battery capacity of all users at current iteration/frame
-            CH_Raw_next = np.empty(number_of_users, dtype=complex)  # to save raw channel gamma of all users at current iteration/frame
-            CH_Dis_next = np.empty(number_of_users, dtype=int)  # to save discrete channel gamma of all users at current iteration/frame
-            G_Raw_next = np.empty(number_of_users, dtype=float)  # to save Gamma of current frame
-            for u in range(number_of_users):
-                CH_Raw_next[u] = generate_rician_fading(K_factor)
-                users[u].channel = CH_Raw_next[u]
-                G_Raw_next[u] = gamma_EH(CH_Raw_next[u], dist_min, dist_max)
-                BT_Dis_next[u] = users[u].BT_units()
-                CH_Dis_next[u] = get_channel(G_Raw[u])
-                row_act = get_row(BT_Dis_next[u], CH_Dis_next[u])
-                best_next_action_value = q_tables[u][row_act][:].max()
-                temporal_difference = Rew_U[u] + discount_factor * best_next_action_value - q_tables[u, row_act, AC_users[u]]
-                q_tables[u, row_act, AC_users[u]] += learning_rate * temporal_difference
+        #Get new State and update Q-Table
+        BT_Dis_next = np.empty(number_of_users, dtype=int)  # to save discrete battery capacity of all users at current iteration/frame
+        CH_Raw_next = np.empty(number_of_users, dtype=complex)  # to save raw channel gamma of all users at current iteration/frame
+        CH_Dis_next = np.empty(number_of_users, dtype=int)  # to save discrete channel gamma of all users at current iteration/frame
+        G_Raw_next = np.empty(number_of_users, dtype=float)  # to save Gamma of current frame
+
+        for u in range(number_of_users):
+            CH_Raw_next[u] = generate_rician_fading(K_factor)
+            users[u].channel = CH_Raw_next[u]
+            G_Raw_next[u] = gamma_EH(CH_Raw_next[u], dist_min, dist_max)
+            BT_Dis_next[u] = users[u].BT_units()
+            CH_Dis_next[u] = get_channel(G_Raw[u])
+            row_act = get_row(BT_Dis_next[u], CH_Dis_next[u])
+            best_next_action_value = q_tables[u][row_act][:].max()
+            temporal_difference = Rew_U[u] + discount_factor * best_next_action_value - q_tables[u, row_act, AC_users[u]]
+            q_tables[u, row_act, AC_users[u]] += learning_rate * temporal_difference
 
         #Collect AOI
 
