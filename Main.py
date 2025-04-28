@@ -14,14 +14,14 @@ from pandas import DataFrame
 
 # This code with an optimized Learning rate= 0.5, But we need to find the value of Epsilon for good convergence
 # define training parameters
-discount_factor = 0.95  # 0.001
+discount_factor = 0.9  # 0.001
 test = 4
 learning_rate = 0.0001
 #define system parameters
 mu_bu= 0.05 # one unit of battery
 number_of_slots = 60
 number_of_users = 40
-time_duration = 0.01
+time_duration = 0.05
 p= 4.6
 dist_min = 1
 dist_max = 30
@@ -33,7 +33,12 @@ Frame_size = []
 STD_AoI_u_AT = []
 STD_AoI_u_BT = []
 Batch_size = 500
-
+it_ind = 0
+explore = 0
+exploit = 0
+K_factor =  15
+decay_rate = 0.0001
+upsilon = 0.01 # One unit to transmit one replica
 #u = np.empty(number_of_users, dtype=object)  # define users array
 #for i in range(number_of_users):
  #   u[i] = i + 1
@@ -212,12 +217,12 @@ def get_row(pw, ch):
     #elif act < BT:
      #   rew = D_AOI + (2* act)
     #return rew
-def get_rew(B_AOI, A_AOI, BT, act, ch, max_AOI=100, max_BT=5, w1=1.0, w2=0.5, w3=0.5):
+def get_rew(B_AOI, A_AOI, BT, act, ch, max_AOI=100, max_BT=5, w1=0.7, w2=0.3, w3=0.3):
     D_AOI = B_AOI - A_AOI
-    D_AOI_norm = D_AOI / number_of_slots
-    act_norm = act / 5
-    ch_norm = ch / 7.0
-    BT_norm = BT / 5
+    D_AOI_norm = D_AOI #/ number_of_slots
+    act_norm = act #/ 5
+    ch_norm = ch #/ 7.0
+    BT_norm = BT #/ 5
 
     reward = 0
     if act == BT:
@@ -446,18 +451,168 @@ def plot_reward_vs_actions_contour_all_tests(AC_user_Mean, Rew_u_mean, CH_mean, 
     fig.suptitle("Reward vs Actions and Channel across Tests", fontsize=16)
     plt.show()
 
+def plot_action_vs_channel_battery_all_tests(CH_mean, Battery_mean, AC_user_Mean, slots_list, smooth_span=50):
+    """
+    Plot contour plots showing how Actions depend on Channel and Battery across multiple tests.
+    Now adds value labels inside contours!
+    """
+    num_tests = AC_user_Mean.shape[0]
+    fig, axs = plt.subplots(1, num_tests, figsize=(5 * num_tests, 5), constrained_layout=True)
+
+    if num_tests == 1:
+        axs = [axs]  # make it iterable
+
+    for t in range(num_tests):
+        # Smooth
+        CH_smooth = pd.Series(CH_mean[t]).ewm(span=smooth_span).mean().to_numpy()
+        Battery_smooth = pd.Series(Battery_mean[t]).ewm(span=smooth_span).mean().to_numpy()
+        Action_smooth = pd.Series(AC_user_Mean[t]).ewm(span=smooth_span).mean().to_numpy()
+
+        # Grid
+        xi = np.linspace(min(CH_smooth), max(CH_smooth), 100)
+        yi = np.linspace(min(Battery_smooth), max(Battery_smooth), 100)
+        Xi, Yi = np.meshgrid(xi, yi)
+
+        # Interpolate
+        zi = griddata((CH_smooth, Battery_smooth), Action_smooth, (Xi, Yi), method='cubic')
+
+        # Plot filled contour
+        cs = axs[t].contourf(Xi, Yi, zi, levels=20, cmap='viridis')
+        fig.colorbar(cs, ax=axs[t])
+
+        # 🧠 Add numeric labels inside
+        cs2 = axs[t].contour(Xi, Yi, zi, levels=10, colors='black', linewidths=0.5)
+        axs[t].clabel(cs2, inline=True, fontsize=8, fmt="%.1f")  # fmt formats the numbers
+
+        axs[t].set_xlabel("Mean Channel (Smoothed)")
+        axs[t].set_ylabel("Mean Battery (Smoothed)")
+        axs[t].set_title(f"Actions | Slots={slots_list[t]}")
+
+    fig.suptitle("Actions vs Channel and Battery across Tests", fontsize=16)
+    plt.show()
+
+
+def plot_action_vs_channel_battery_contour_highres(CH_mean, Battery_mean, AC_user_Mean, slots_list, smooth_span=50, save_pdf=False):
+    """
+    High-resolution contour plots for Actions vs Channel and Battery across multiple tests.
+    Option to export as PDF.
+    """
+    num_tests = AC_user_Mean.shape[0]
+    fig, axs = plt.subplots(1, num_tests, figsize=(6 * num_tests, 6), constrained_layout=True, dpi=300)
+
+    if num_tests == 1:
+        axs = [axs]
+
+    for t in range(num_tests):
+        # Smooth
+        CH_smooth = pd.Series(CH_mean[t]).ewm(span=smooth_span).mean().to_numpy()
+        Battery_smooth = pd.Series(Battery_mean[t]).ewm(span=smooth_span).mean().to_numpy()
+        Action_smooth = pd.Series(AC_user_Mean[t]).ewm(span=smooth_span).mean().to_numpy()
+
+        # Grid
+        xi = np.linspace(min(CH_smooth), max(CH_smooth), 150)
+        yi = np.linspace(min(Battery_smooth), max(Battery_smooth), 150)
+        Xi, Yi = np.meshgrid(xi, yi)
+        zi = griddata((CH_smooth, Battery_smooth), Action_smooth, (Xi, Yi), method='cubic')
+
+        # Plot
+        cs = axs[t].contourf(Xi, Yi, zi, levels=30, cmap='viridis')
+        fig.colorbar(cs, ax=axs[t])
+
+        # Add lines and labels
+        cs2 = axs[t].contour(Xi, Yi, zi, levels=10, colors='black', linewidths=0.7)
+        axs[t].clabel(cs2, inline=True, fontsize=7, fmt="%.1f")
+
+        axs[t].set_xlabel("Mean Channel (Smoothed)", fontsize=10)
+        axs[t].set_ylabel("Mean Battery (Smoothed)", fontsize=10)
+        axs[t].set_title(f"Actions vs Channel & Battery (Slots={slots_list[t]})", fontsize=11)
+        axs[t].grid(True)
+
+    fig.suptitle("Actions vs Channel and Battery across Tests", fontsize=14)
+
+    if save_pdf:
+        fig.savefig("contour_actions_vs_channel_battery.pdf", format='pdf', bbox_inches='tight')
+        print("✅ PDF Saved: contour_actions_vs_channel_battery.pdf")
+
+    plt.show()
+
+
+def plot_action_vs_channel_battery_3d(CH_mean, Battery_mean, AC_user_Mean, slots_list, smooth_span=50, save_pdf=False):
+    """
+    High-quality 3D plot for Actions vs Channel and Battery across multiple tests.
+    """
+    num_tests = AC_user_Mean.shape[0]
+
+    for t in range(num_tests):
+        # Smooth
+        CH_smooth = pd.Series(CH_mean[t]).ewm(span=smooth_span).mean().to_numpy()
+        Battery_smooth = pd.Series(Battery_mean[t]).ewm(span=smooth_span).mean().to_numpy()
+        Action_smooth = pd.Series(AC_user_Mean[t]).ewm(span=smooth_span).mean().to_numpy()
+
+        # Grid
+        xi = np.linspace(min(CH_smooth), max(CH_smooth), 100)
+        yi = np.linspace(min(Battery_smooth), max(Battery_smooth), 100)
+        Xi, Yi = np.meshgrid(xi, yi)
+        zi = griddata((CH_smooth, Battery_smooth), Action_smooth, (Xi, Yi), method='cubic')
+
+        fig = plt.figure(figsize=(10, 7), dpi=300)
+        ax = fig.add_subplot(111, projection='3d')
+        surf = ax.plot_surface(Xi, Yi, zi, cmap='viridis', edgecolor='k', linewidth=0.2, antialiased=True)
+
+        ax.set_xlabel("Mean Channel (Smoothed)")
+        ax.set_ylabel("Mean Battery (Smoothed)")
+        ax.set_zlabel("Mean Actions (Replicas)")
+        ax.set_title(f"3D Surface: Actions vs Channel & Battery (Slots={slots_list[t]})")
+
+        fig.colorbar(surf, shrink=0.5, aspect=5)
+        ax.view_init(elev=30, azim=135)
+
+        if save_pdf:
+            fig.savefig(f"3D_surface_actions_slots_{slots_list[t]}.pdf", format='pdf', bbox_inches='tight')
+            print(f"✅ PDF Saved: 3D_surface_actions_slots_{slots_list[t]}.pdf")
+
+        plt.show()
+
+
+def plot_action_vs_channel_battery_3d_subplots(CH_mean, Battery_mean, AC_user_Mean, slots_list, smooth_span=50):
+    num_tests = AC_user_Mean.shape[0]
+    fig = plt.figure(figsize=(6 * num_tests, 6), dpi=300)
+
+    for t in range(num_tests):
+        ax = fig.add_subplot(1, num_tests, t + 1, projection='3d')
+
+        # Smooth
+        CH_smooth = pd.Series(CH_mean[t]).ewm(span=smooth_span).mean().to_numpy()
+        Battery_smooth = pd.Series(Battery_mean[t]).ewm(span=smooth_span).mean().to_numpy()
+        Action_smooth = pd.Series(AC_user_Mean[t]).ewm(span=smooth_span).mean().to_numpy()
+
+        # Grid
+        xi = np.linspace(min(CH_smooth), max(CH_smooth), 100)
+        yi = np.linspace(min(Battery_smooth), max(Battery_smooth), 100)
+        Xi, Yi = np.meshgrid(xi, yi)
+        zi = griddata((CH_smooth, Battery_smooth), Action_smooth, (Xi, Yi), method='cubic')
+
+        surf = ax.plot_surface(Xi, Yi, zi, cmap='viridis', edgecolor='k', linewidth=0.2, antialiased=True)
+
+        ax.set_xlabel("Mean Channel")
+        ax.set_ylabel("Mean Battery")
+        ax.set_zlabel("Actions")
+        ax.set_title(f"Slots={slots_list[t]}", fontsize=10)
+        ax.view_init(elev=30, azim=135)
+
+    fig.suptitle("3D Surface Comparison: Actions vs Channel and Battery", fontsize=16)
+    plt.tight_layout()
+    plt.show()
+
+
 ## Command to randomly pick values----->>>>> np.random.randint(0, 7, size=(k.size * x.size, a.size), dtype=int)
 reward = np.empty((number_of_users, iterations+1), dtype=float)
 AOI = np.zeros((number_of_users, iterations+1), dtype=int)
-it_ind = 0
-explore = 0
-exploit = 0
-K_factor =  12
+
 #discount_factor = 0.9
 #learning_rate = 0.001
 # step_size_ep= (1-0.4)/iterations
-decay_rate = 0.0001
-upsilon = 0.02 # One unit to transmit one replica
+
 users = []
 for i in range(number_of_users):  # popola il vettore degli utenti
     # users[i] = i + 1
@@ -480,7 +635,7 @@ Rew_u_mean =np.empty((test, iterations), dtype=float)
 
 for t in range(1, test+1):
     min_epsilon = 0.1
-    max_epsilon = 0.7
+    max_epsilon = 0.9
     Battery_f = np.empty((iterations, number_of_users), dtype=float)  # To save state of all users in current frame
     Ch_f = np.empty((iterations, number_of_users), dtype=float)
     AC_user_f = np.empty((iterations, number_of_users), dtype=int)
@@ -717,6 +872,15 @@ for t in range(test):
     #plot_reward_vs_actions_contour(AC_user_Mean [t, :], Rew_u_mean [t, :], CH_mean [t, :], slots)
     #slots -=2
 
-plot_reward_vs_actions_contour_all_tests (AC_user_Mean, Rew_u_mean, CH_mean, slots)
+#plot_reward_vs_actions_contour_all_tests (AC_user_Mean, Rew_u_mean, CH_mean, slots)
+
+plot_action_vs_channel_battery_all_tests(CH_mean, Battery_mean, AC_user_Mean, slots, smooth_span=50)
+
+plot_action_vs_channel_battery_contour_highres(CH_mean, Battery_mean, AC_user_Mean, slots, smooth_span=50, save_pdf=True)
+
+plot_action_vs_channel_battery_3d(CH_mean, Battery_mean, AC_user_Mean, slots, smooth_span=50, save_pdf=True)
+
+plot_action_vs_channel_battery_3d_subplots(CH_mean, Battery_mean, AC_user_Mean, slots, smooth_span=50)
+
 print (f"Explore: {explore}")
 print (f"Exploit: {exploit}")
