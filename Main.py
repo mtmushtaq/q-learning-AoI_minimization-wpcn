@@ -1,5 +1,6 @@
 #import sys
-
+#import matplotlib
+#matplotlib.use('Qt5Agg')  # Or TkAgg 'Qt5Agg', 'GTK3Agg' depending on your system
 #from typing import Any
 import random as rd
 import numpy as np
@@ -8,18 +9,18 @@ from State_User import * #generate_rician_fading, gamma_EH, compute_energy_harve
 from Discritize_state import get_dis_BT, get_dis_AT, CH_dist
 from SIC import *
 from User import User
-import pandas as pd
+#import pandas as pd
 from pandas import DataFrame
 
 # This code with an optimized Learning rate= 0.5, But we need to find the value of Epsilon for good convergence
 # define training parameters
 discount_factor = 0.95  # 0.001
-test = 1
+test = 4
 learning_rate = 0.0001
 #define system parameters
 mu_bu= 0.05 # one unit of battery
-number_of_slots = 50
-number_of_users = 25
+number_of_slots = 60
+number_of_users = 40
 time_duration = 0.01
 p= 4.6
 dist_min = 1
@@ -27,7 +28,7 @@ dist_max = 30
 s_AAOI = []
 Gain = []
 Th= 0.2
-iterations = 50000
+iterations = 25000
 Frame_size = []
 STD_AoI_u_AT = []
 STD_AoI_u_BT = []
@@ -203,14 +204,27 @@ def get_row(pw, ch):
         row = 47
         return row
 
-def get_rew(B_AOI, A_AOI, BT, act):
+#def get_rew(B_AOI, A_AOI, BT, act, ch):
+ #   D_AOI = B_AOI - A_AOI
+  #  rew = 0
+   # if act == BT:
+    #    rew = D_AOI + (act/(ch+0.1))
+    #elif act < BT:
+     #   rew = D_AOI + (2* act)
+    #return rew
+def get_rew(B_AOI, A_AOI, BT, act, ch, max_AOI=100, max_BT=5, w1=1.0, w2=0.5, w3=0.5):
     D_AOI = B_AOI - A_AOI
-    rew = 0
+    D_AOI_norm = D_AOI / number_of_slots
+    act_norm = act / 5
+    ch_norm = ch / 7.0
+    BT_norm = BT / 5
+
+    reward = 0
     if act == BT:
-        rew = D_AOI + (act/2)
+        reward = w1 * D_AOI_norm + w2 * (act_norm / (ch_norm + 0.1)) + w3 * BT_norm
     elif act < BT:
-        rew = D_AOI + (2* act)
-    return rew
+        reward = w1 * D_AOI_norm + w2 * (2 * act_norm) + w3 * BT_norm
+    return reward
 
 
 def get_distr(pw):
@@ -232,6 +246,206 @@ def get_distr(pw):
     elif pw == 5:
         distr = np.array([0.6, 0.2, 0.1, 0.06, 0.04])
         return distr
+
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+from mpl_toolkits.mplot3d import Axes3D
+
+def plot_action_reward_relations(AC_user_Mean, CH_mean, Battery_mean, Rew_u_mean, slots, smoothing_span=50):
+    frames = np.arange(len(AC_user_Mean))
+
+    # --- SMOOTHING ---
+    AC_user_Mean_smooth = pd.Series(AC_user_Mean).ewm(span=smoothing_span).mean()
+    CH_mean_smooth = pd.Series(CH_mean).ewm(span=smoothing_span).mean()
+    Battery_mean_smooth = pd.Series(Battery_mean).ewm(span=smoothing_span).mean()
+    Rew_u_mean_smooth = pd.Series(Rew_u_mean).ewm(span=smoothing_span).mean()
+
+    # --- 1. Smoothed Channel & Battery over Frames ---
+    fig, ax1 = plt.subplots(figsize=(10, 6))
+
+    color = 'tab:blue'
+    ax1.set_xlabel('Frame')
+    ax1.set_ylabel('Mean Channel (Smoothed)', color=color)
+    ax1.plot(frames, CH_mean_smooth, color=color, label=f"Channel, Slots = {slots}")
+    ax1.tick_params(axis='y', labelcolor=color)
+    ax1.grid(True)
+
+    ax2 = ax1.twinx()
+    color = 'tab:green'
+    ax2.set_ylabel('Mean Battery (Smoothed)', color=color)
+    ax2.plot(frames, Battery_mean_smooth, color=color, label=f"Battery , Slots = {slots}")
+    ax2.tick_params(axis='y', labelcolor=color)
+
+    plt.title(f'Channel and Battery vs Frames, Slots = {slots}')
+    fig.tight_layout()
+    plt.show()
+
+    # --- 2. Smoothed Actions vs Channel ---
+    plt.figure(figsize=(10, 6))
+    plt.scatter(CH_mean_smooth, AC_user_Mean_smooth, c=Battery_mean_smooth, cmap='viridis', alpha=0.7)
+    plt.colorbar(label=f"Mean Battery , Slots = {slots}")
+    plt.xlabel("Mean Channel")
+    plt.ylabel("Mean Actions (Replicas) ")
+    plt.title(f"Actions vs Channel, Slots = {slots}")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+    # --- 3. Smoothed Reward vs Actions ---
+    plt.figure(figsize=(10, 6))
+    plt.scatter(AC_user_Mean_smooth, Rew_u_mean_smooth, c=CH_mean_smooth, cmap='plasma', alpha=0.7)
+    plt.colorbar(label="Mean Channel")
+    plt.xlabel("Mean Actions")
+    plt.ylabel("Mean Reward")
+    plt.title(f"Reward vs Actions, Slots = {slots}")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+    # --- 4. 3D Scatter Plot: Reward vs Channel vs Battery (Smoothed) ---
+    fig = plt.figure(figsize=(10, 7))
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(CH_mean_smooth, Battery_mean_smooth, Rew_u_mean_smooth, c=Rew_u_mean_smooth, cmap='coolwarm', s=40)
+
+    ax.set_xlabel('Mean Channel')
+    ax.set_ylabel('Mean Battery')
+    ax.set_zlabel('Mean Reward')
+    ax.set_title(f'Reward Surface w.r.t Channel and Battery, Slots = {slots}')
+    ax.view_init(elev=30, azim=135)
+    plt.tight_layout()
+    plt.show()
+
+    # --- 5. Correlation Heatmap ---
+    df = pd.DataFrame({
+        'Actions': AC_user_Mean_smooth,
+        'Channel': CH_mean_smooth,
+        'Battery': Battery_mean_smooth,
+        'Reward': Rew_u_mean_smooth
+    })
+
+    corr_matrix = df.corr()
+
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt=".2f", square=True)
+    plt.title(f"Correlation Heatmap, Slots = {slots}")
+    plt.tight_layout()
+    plt.show()
+
+def plot_3d_action_vs_channel_battery(AC_user_Mean, CH_mean, Battery_mean, slots):
+    """
+    Plots a 3D scatter plot: Actions vs Channel vs Battery
+    to visualize how the agent selects actions depending on channel and battery.
+
+    Args:
+        AC_user_Mean (np.ndarray): Mean actions taken across users per frame.
+        CH_mean (np.ndarray): Mean channel quality across users per frame.
+        Battery_mean (np.ndarray): Mean battery level across users per frame.
+        title (str): Title of the plot.
+    """
+    # --- Smoothing the curves using Exponential Moving Average (EMA) ---
+    span = 50
+    ac_smooth = np.array(pd.Series(AC_user_Mean).ewm(span=span).mean())
+    ch_smooth = np.array(pd.Series(CH_mean).ewm(span=span).mean())
+    bat_smooth = np.array(pd.Series(Battery_mean).ewm(span=span).mean())
+
+    fig = plt.figure(figsize=(12, 7))
+    ax = fig.add_subplot(111, projection='3d')
+
+    # --- Scatter plot ---
+    p = ax.scatter(ch_smooth, bat_smooth, ac_smooth, c=ac_smooth, cmap='viridis', s=40)
+
+    ax.set_xlabel("Mean Channel Quality")
+    ax.set_ylabel("Mean Battery Level")
+    ax.set_zlabel("Mean Action (Replicas)")
+    ax.set_title(f"Action vs Channel vs Battery {slots}")
+    fig.colorbar(p, ax=ax, shrink=0.5, aspect=10, label='Mean Action Level')
+    ax.view_init(elev=30, azim=135)
+    plt.tight_layout()
+    plt.show()
+
+import numpy as np
+import matplotlib.pyplot as plt
+import scipy.interpolate
+
+from scipy.interpolate import griddata
+def plot_actions_vs_channel_contour(CH_mean, AC_user_Mean, Battery_mean, slots, smooth_span=50):
+    # Smooth inside
+    CH_mean_smooth = pd.Series(CH_mean).ewm(span=smooth_span).mean().to_numpy()
+    AC_user_Mean_smooth = pd.Series(AC_user_Mean).ewm(span=smooth_span).mean().to_numpy()
+    Battery_mean_smooth = pd.Series(Battery_mean).ewm(span=smooth_span).mean().to_numpy()
+
+    # Grid for contour
+    xi = np.linspace(min(CH_mean_smooth), max(CH_mean_smooth), 100)
+    yi = np.linspace(min(Battery_mean_smooth), max(Battery_mean_smooth), 100)
+    Xi, Yi = np.meshgrid(xi, yi)
+
+    # Interpolate Actions onto grid
+    zi = griddata((CH_mean_smooth, Battery_mean_smooth),AC_user_Mean_smooth, (Xi, Yi), method='cubic')
+
+    plt.figure(figsize=(10, 6))
+    contour = plt.contourf(Xi, Yi, zi, levels=20, cmap='viridis')
+    plt.colorbar(contour, label="Mean Actions (Replicas)")
+    plt.xlabel("Mean Channel (Smoothed)")
+    plt.ylabel("Mean Battery (Smoothed)")
+    plt.title(f"Actions vs Channel and Battery {slots}")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+def plot_reward_vs_actions_contour(AC_user_Mean, Rew_u_mean, CH_mean, slots, smooth_span=50):
+    # Smooth inside
+    AC_user_Mean_smooth = pd.Series(AC_user_Mean).ewm(span=smooth_span).mean().to_numpy()
+    Rew_u_mean_smooth = pd.Series(Rew_u_mean).ewm(span=smooth_span).mean().to_numpy()
+    CH_mean_smooth = pd.Series(CH_mean).ewm(span=smooth_span).mean().to_numpy()
+
+    # Grid for contour
+    xi = np.linspace(min(AC_user_Mean_smooth), max(AC_user_Mean_smooth), 100)
+    yi = np.linspace(min(CH_mean_smooth), max(CH_mean_smooth), 100)
+    Xi, Yi = np.meshgrid(xi, yi)
+
+    # Interpolate Reward onto grid
+    zi = griddata((AC_user_Mean_smooth, CH_mean_smooth), Rew_u_mean_smooth,(Xi, Yi), method='cubic')
+
+    plt.figure(figsize=(10, 6))
+    contour = plt.contourf(Xi, Yi, zi, levels=20, cmap='plasma')
+    plt.colorbar(contour, label="Mean Reward")
+    plt.xlabel("Mean Actions (Smoothed)")
+    plt.ylabel("Mean Channel (Smoothed)")
+    plt.title(f"Reward vs Actions and Channel {slots}")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+def plot_reward_vs_actions_contour_all_tests(AC_user_Mean, Rew_u_mean, CH_mean, slots_list, smooth_span=50):
+    num_tests = AC_user_Mean.shape[0]
+    fig, axs = plt.subplots(1, num_tests, figsize=(5 * num_tests, 5), constrained_layout=True)
+
+    if num_tests == 1:
+        axs = [axs]  # Make it iterable even for 1 subplot
+
+    for t in range(num_tests):
+        AC_user_Mean_smooth = pd.Series(AC_user_Mean[t]).ewm(span=smooth_span).mean().to_numpy()
+        Rew_u_mean_smooth = pd.Series(Rew_u_mean[t]).ewm(span=smooth_span).mean().to_numpy()
+        CH_mean_smooth = pd.Series(CH_mean[t]).ewm(span=smooth_span).mean().to_numpy()
+
+        xi = np.linspace(min(AC_user_Mean_smooth), max(AC_user_Mean_smooth), 100)
+        yi = np.linspace(min(CH_mean_smooth), max(CH_mean_smooth), 100)
+        Xi, Yi = np.meshgrid(xi, yi)
+
+        zi = griddata((AC_user_Mean_smooth, CH_mean_smooth), Rew_u_mean_smooth, (Xi, Yi), method='cubic')
+
+        cs = axs[t].contourf(Xi, Yi, zi, levels=20, cmap='plasma')
+        fig.colorbar(cs, ax=axs[t])
+        axs[t].set_xlabel("Mean Actions (Smoothed)")
+        axs[t].set_ylabel("Mean Channel (Smoothed)")
+        axs[t].set_title(f"Slots={slots_list[t]}")
+
+    fig.suptitle("Reward vs Actions and Channel across Tests", fontsize=16)
+    plt.show()
+
 ## Command to randomly pick values----->>>>> np.random.randint(0, 7, size=(k.size * x.size, a.size), dtype=int)
 reward = np.empty((number_of_users, iterations+1), dtype=float)
 AOI = np.zeros((number_of_users, iterations+1), dtype=int)
@@ -243,7 +457,7 @@ K_factor =  12
 #learning_rate = 0.001
 # step_size_ep= (1-0.4)/iterations
 decay_rate = 0.0001
-upsilon = 0.01 # One unit to transmit one replica
+upsilon = 0.02 # One unit to transmit one replica
 users = []
 for i in range(number_of_users):  # popola il vettore degli utenti
     # users[i] = i + 1
@@ -258,10 +472,19 @@ AOI_users = np.empty((iterations*test, number_of_users), dtype=int)
 #print(q_tables)
 # print(f"All State matrix {S}")
 G = np.empty(test, dtype = float)
+
+AC_user_Mean = np.empty((test, iterations), dtype=float)
+CH_mean = np.empty((test, iterations), dtype=float)
+Battery_mean = np.empty((test, iterations), dtype=float)
+Rew_u_mean =np.empty((test, iterations), dtype=float)
+
 for t in range(1, test+1):
     min_epsilon = 0.1
     max_epsilon = 0.7
-    #Battery_Ch = np.empty((iterations, number_of_users, 2), dtype=float)  # To save state of all users in current frame
+    Battery_f = np.empty((iterations, number_of_users), dtype=float)  # To save state of all users in current frame
+    Ch_f = np.empty((iterations, number_of_users), dtype=float)
+    AC_user_f = np.empty((iterations, number_of_users), dtype=int)
+    Rew_u_f = np.empty((iterations, number_of_users), dtype=float)
     #q_tables = np.empty([number_of_users, k.size * x.size, a.size], dtype=float)
     #for user in range(np.size(users)):
      #   q_tables[user, :, :] = np.random.rand(k.size * x.size, a.size)
@@ -311,6 +534,7 @@ for t in range(1, test+1):
                     slot_indices = np.random.choice(range_slot, size=user_action, replace=False) #choose random slots to send the packet
                     slot_aloc_f[d, slot_indices] = 1  #Make selected slots 1 for user's row
                     users[d].decrease_EH(user_action)
+                    BT_Dis[d] = users[d].BT_units()
                     AC_users[d] = user_action[0]
                     #print(f"Random Action of User {d} is {user_action}")
                 #slot_aloc_f [d-1, :]
@@ -356,6 +580,7 @@ for t in range(1, test+1):
                     ind_u = rd.sample(range(number_of_slots), action)
                     slot_aloc_f[d , ind_u] = 1
                     users[d].decrease_EH(action) #update battery
+                    BT_Dis[d] = users[d].BT_units()
                 AC_users[d] = action
                 #print(f"take action: {action}")
                 #reward[d][it_ind] = get_rew(action)
@@ -371,6 +596,8 @@ for t in range(1, test+1):
                 #    if u == user_to_transmit:
                 pw_u = compute_energy_harvested(G_Raw[u], time_duration, p)
                 users[u].add_EH(pw_u)
+                BT_Dis[u] = users[u].BT_units()
+
         # apply SIC
         decoded_users = capture_effect_SIC_realtime(slot_aloc_f, number_of_slots, number_of_users, G_Raw, verbose=False) # Rearly-n method
 
@@ -386,7 +613,7 @@ for t in range(1, test+1):
             else:
                 users[u].AOI = Recovery - Tx_slot + 1
             Af_aoi[u] = users[u].AOI
-            Rew_U [u] = get_rew (Bf_aoi [u], Af_aoi[u] , BT_Dis[u] , AC_users[u])
+            Rew_U [u] = get_rew (Bf_aoi [u], Af_aoi[u] , BT_Dis[u] , AC_users[u], CH_Dis[u])
             #print(f"user {u} AOI is {users[u].AOI}")
             #print(f"user {u} BT is {users[u].battery_level}")
             #print(f"user {u} REW is {Rew_U [u]}")
@@ -410,11 +637,17 @@ for t in range(1, test+1):
                 temporal_difference = Rew_U[u] + discount_factor * best_next_action_value - q_tables[u, row_act, AC_users[u]]
                 q_tables[u, row_act, AC_users[u]] += learning_rate * temporal_difference
 
-        #Collect AOI
-
+        #Collect Data
+        AC_user_f [it_ind, :] = AC_users
+        Ch_f [it_ind, :] = CH_Dis
+        Battery_f [it_ind, :] = BT_Dis
+        Rew_u_f[it_ind, :] = Rew_U
         # Update AOI using current frame AOI and add it into next frame AOI so that it can be used for next frame
         #Update Next State
-
+    AC_user_Mean [t-1, :] = np.mean(AC_user_f, axis=1)
+    CH_mean [t-1, :] = np.mean(Ch_f, axis=1)
+    Battery_mean [t-1, :] = np.mean(Battery_f, axis=1)
+    Rew_u_mean [t-1, :] = np.mean(Rew_u_f, axis=1)
     G [t-1]= number_of_users / number_of_slots
     number_of_slots -= 2
     #number_of_users += 1
@@ -474,6 +707,16 @@ plt.grid(True)
 plt.tight_layout()
 plt.show()
 
+slots = []
+for t in range(test):
+    slots.append(number_of_slots + 2*test - 2*t)
+#for t in range(test):
+ #   plot_action_reward_relations(AC_user_Mean[t, :], CH_mean [t, :], Battery_mean [t, :], Rew_u_mean [t, :], slots, smoothing_span=50)
+  #  plot_3d_action_vs_channel_battery(AC_user_Mean [t, :], CH_mean [t, :], Battery_mean [t, :], slots)
+   # plot_actions_vs_channel_contour(CH_mean[t, :], AC_user_Mean[t, :], Battery_mean[t, :], slots)
+    #plot_reward_vs_actions_contour(AC_user_Mean [t, :], Rew_u_mean [t, :], CH_mean [t, :], slots)
+    #slots -=2
 
+plot_reward_vs_actions_contour_all_tests (AC_user_Mean, Rew_u_mean, CH_mean, slots)
 print (f"Explore: {explore}")
 print (f"Exploit: {exploit}")
