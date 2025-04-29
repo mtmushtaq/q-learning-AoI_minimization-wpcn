@@ -15,7 +15,7 @@ from pandas import DataFrame
 # This code with an optimized Learning rate= 0.5, But we need to find the value of Epsilon for good convergence
 # define training parameters
 discount_factor = 0.9  # 0.001
-test = 4
+test = 2
 learning_rate = 0.01
 #define system parameters
 mu_bu= 0.05 # one unit of battery
@@ -28,15 +28,15 @@ dist_max = 30
 s_AAOI = []
 Gain = []
 Th= 0.2
-iterations = 25000
+iterations = 500
 Frame_size = []
 STD_AoI_u_AT = []
 STD_AoI_u_BT = []
-Batch_size = 250
+Batch_size = 100
 it_ind = 0
 explore = 0
 exploit = 0
-K_factor =  15
+K_factor =  10
 decay_rate = 0.0001
 upsilon = 0.03 # One unit to transmit one replica
 d_slot = 1
@@ -825,6 +825,244 @@ def plot_userwise_action_density_combined(AC_user_tests, CH_user_tests, BT_user_
         fig.suptitle(f"User {u}: Action + Density Overlay", fontsize=16)
         plt.show()
 
+import matplotlib.patches as patches
+
+def plot_userwise_reward_density_barplot(AC_user_tests, CH_user_tests, BT_user_tests, REW_user_tests, slots_list,
+                                         smooth_span=50, bins=30):
+    """
+    Plot Reward with Density shown as discrete bar-style rectangles (true bar plot).
+    """
+    num_tests, num_frames, num_users = REW_user_tests.shape
+
+    for u in range(num_users):
+        print(f"🔲 Reward + Density Bars for User {u}")
+
+        fig, axs = plt.subplots(1, num_tests, figsize=(5 * num_tests, 5), constrained_layout=True)
+        if num_tests == 1:
+            axs = [axs]
+
+        for t in range(num_tests):
+            ch = pd.Series(CH_user_tests[t, :, u]).ewm(span=smooth_span).mean().to_numpy()
+            bt = pd.Series(BT_user_tests[t, :, u]).ewm(span=smooth_span).mean().to_numpy()
+            rew = pd.Series(REW_user_tests[t, :, u]).ewm(span=smooth_span).mean().to_numpy()
+
+            xi = np.linspace(min(ch), max(ch), 100)
+            yi = np.linspace(min(bt), max(bt), 100)
+            Xi, Yi = np.meshgrid(xi, yi)
+
+            try:
+                zi = griddata((ch, bt), rew, (Xi, Yi), method='cubic')
+            except Exception as e:
+                print(f"⚠️ Skipping reward for User {u}, Test {t}: {e}")
+                continue
+
+            # Plot reward surface (soft background)
+            im = axs[t].imshow(
+                zi, extent=(min(ch), max(ch), min(bt), max(bt)), origin='lower',
+                cmap='plasma', aspect='auto', alpha=0.8
+            )
+            fig.colorbar(im, ax=axs[t], label="Reward")
+
+            # Calculate discrete bins
+            stat, x_edge, y_edge, _ = binned_statistic_2d(ch, bt, None, statistic='count', bins=bins)
+
+            max_count = np.nanmax(stat) if np.nanmax(stat) != 0 else 1
+
+            # Add rectangles manually
+            for i in range(len(x_edge) - 1):
+                for j in range(len(y_edge) - 1):
+                    count = stat[i, j]
+                    if not np.isnan(count) and count > 0:
+                        # Normalize color intensity
+                        color_intensity = count / max_count
+                        rect = patches.Rectangle(
+                            (x_edge[i], y_edge[j]),
+                            x_edge[i+1] - x_edge[i],
+                            y_edge[j+1] - y_edge[j],
+                            linewidth=0,
+                            facecolor=(0, 0, 1, color_intensity * 0.6)  # Blue color, transparent based on density
+                        )
+                        axs[t].add_patch(rect)
+
+            axs[t].set_xlabel("Channel (Smoothed)")
+            axs[t].set_ylabel("Battery (Smoothed)")
+            axs[t].set_title(f"User {u} | Slots={slots_list[t]}")
+
+        fig.suptitle(f"User {u}: Reward with True Density Bars", fontsize=16)
+        plt.show()
+
+
+def plot_userwise_action_density_barplot(AC_user_tests, CH_user_tests, BT_user_tests, slots_list,
+                                         smooth_span=50, bins=30):
+    """
+    Plot Action with Density shown as discrete bar-style rectangles (true bar plot).
+    """
+    num_tests, num_frames, num_users = AC_user_tests.shape
+
+    for u in range(num_users):
+        print(f"🔲 Action + Density Bars for User {u}")
+
+        fig, axs = plt.subplots(1, num_tests, figsize=(5 * num_tests, 5), constrained_layout=True)
+        if num_tests == 1:
+            axs = [axs]
+
+        for t in range(num_tests):
+            ch = pd.Series(CH_user_tests[t, :, u]).ewm(span=smooth_span).mean().to_numpy()
+            bt = pd.Series(BT_user_tests[t, :, u]).ewm(span=smooth_span).mean().to_numpy()
+            ac = pd.Series(AC_user_tests[t, :, u]).ewm(span=smooth_span).mean().to_numpy()
+
+            xi = np.linspace(min(ch), max(ch), 100)
+            yi = np.linspace(min(bt), max(bt), 100)
+            Xi, Yi = np.meshgrid(xi, yi)
+
+            try:
+                zi = griddata((ch, bt), ac, (Xi, Yi), method='cubic')
+            except Exception as e:
+                print(f"⚠️ Skipping action for User {u}, Test {t}: {e}")
+                continue
+
+            # Plot action surface
+            im = axs[t].imshow(
+                zi, extent=(min(ch), max(ch), min(bt), max(bt)), origin='lower',
+                cmap='viridis', aspect='auto', alpha=0.8
+            )
+            fig.colorbar(im, ax=axs[t], label="Action")
+
+            # Calculate discrete bins
+            stat, x_edge, y_edge, _ = binned_statistic_2d(ch, bt, None, statistic='count', bins=bins)
+
+            max_count = np.nanmax(stat) if np.nanmax(stat) != 0 else 1
+
+            # Add rectangles manually
+            for i in range(len(x_edge) - 1):
+                for j in range(len(y_edge) - 1):
+                    count = stat[i, j]
+                    if not np.isnan(count) and count > 0:
+                        color_intensity = count / max_count
+                        rect = patches.Rectangle(
+                            (x_edge[i], y_edge[j]),
+                            x_edge[i+1] - x_edge[i],
+                            y_edge[j+1] - y_edge[j],
+                            linewidth=0,
+                            facecolor=(0, 0, 1, color_intensity * 0.6)  # Blue color
+                        )
+                        axs[t].add_patch(rect)
+
+            axs[t].set_xlabel("Channel (Smoothed)")
+            axs[t].set_ylabel("Battery (Smoothed)")
+            axs[t].set_title(f"User {u} | Slots={slots_list[t]}")
+
+        fig.suptitle(f"User {u}: Action with True Density Bars", fontsize=16)
+        plt.show()
+
+
+from scipy.stats import binned_statistic_2d
+def plot_userwise_reward_bar_grid_all_tests(CH_user_tests, BT_user_tests, REW_user_tests, slots_list,
+                                            user_index=0, bins=10, smooth_span=50):
+    """
+    Plot Reward bar-grid for a single user across multiple tests using matplotlib patches.
+    """
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as patches
+    import pandas as pd
+    from scipy.stats import binned_statistic_2d
+    import numpy as np
+
+    num_tests = CH_user_tests.shape[0]
+    fig, axs = plt.subplots(1, num_tests, figsize=(5 * num_tests, 5), constrained_layout=True)
+    if num_tests == 1:
+        axs = [axs]
+
+    reward_cmap = plt.get_cmap("plasma")
+
+    for t in range(num_tests):
+        ch = pd.Series(CH_user_tests[t, :, user_index]).ewm(span=smooth_span).mean().to_numpy()
+        bt = pd.Series(BT_user_tests[t, :, user_index]).ewm(span=smooth_span).mean().to_numpy()
+        rw = pd.Series(REW_user_tests[t, :, user_index]).ewm(span=smooth_span).mean().to_numpy()
+
+        stat, x_edge, y_edge, _ = binned_statistic_2d(ch, bt, rw, statistic='mean', bins=bins)
+        max_val = np.nanmax(stat)
+        min_val = np.nanmin(stat)
+
+        for i in range(len(x_edge) - 1):
+            for j in range(len(y_edge) - 1):
+                val = stat[i, j]
+                if not np.isnan(val):
+                    norm_val = (val - min_val) / (max_val - min_val + 1e-8)
+                    rect = patches.Rectangle(
+                        (x_edge[i], y_edge[j]),
+                        x_edge[i + 1] - x_edge[i],
+                        y_edge[j + 1] - y_edge[j],
+                        facecolor=reward_cmap(norm_val),
+                        edgecolor='black',
+                        linewidth=0.3
+                    )
+                    axs[t].add_patch(rect)
+
+        axs[t].set_xlim(x_edge[0], x_edge[-1])
+        axs[t].set_ylim(y_edge[0], y_edge[-1])
+        axs[t].set_xlabel("Channel (Smoothed)")
+        axs[t].set_ylabel("Battery (Smoothed)")
+        axs[t].set_title(f"User {user_index} | Slots={slots_list[t]}")
+
+    fig.suptitle(f"User {user_index}: Reward Bar Grid across Tests", fontsize=16)
+    plt.colorbar(plt.cm.ScalarMappable(cmap=reward_cmap), ax=axs, location='right', label="Reward (Normalized)")
+    plt.show()
+
+
+
+def plot_userwise_action_bar_grid_all_tests(CH_user_tests, BT_user_tests, AC_user_tests, slots_list,
+                                            user_index=0, bins=10, smooth_span=50):
+    """
+    Plot Action bar-grid for a single user across multiple tests using matplotlib patches.
+    """
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as patches
+    import pandas as pd
+    from scipy.stats import binned_statistic_2d
+    import numpy as np
+
+    num_tests = CH_user_tests.shape[0]
+    fig, axs = plt.subplots(1, num_tests, figsize=(5 * num_tests, 5), constrained_layout=True)
+    if num_tests == 1:
+        axs = [axs]
+
+    action_cmap = plt.get_cmap("viridis")
+
+    for t in range(num_tests):
+        ch = pd.Series(CH_user_tests[t, :, user_index]).ewm(span=smooth_span).mean().to_numpy()
+        bt = pd.Series(BT_user_tests[t, :, user_index]).ewm(span=smooth_span).mean().to_numpy()
+        ac = pd.Series(AC_user_tests[t, :, user_index]).ewm(span=smooth_span).mean().to_numpy()
+
+        stat, x_edge, y_edge, _ = binned_statistic_2d(ch, bt, ac, statistic='mean', bins=bins)
+        max_val = np.nanmax(stat)
+        min_val = np.nanmin(stat)
+
+        for i in range(len(x_edge) - 1):
+            for j in range(len(y_edge) - 1):
+                val = stat[i, j]
+                if not np.isnan(val):
+                    norm_val = (val - min_val) / (max_val - min_val + 1e-8)
+                    rect = patches.Rectangle(
+                        (x_edge[i], y_edge[j]),
+                        x_edge[i + 1] - x_edge[i],
+                        y_edge[j + 1] - y_edge[j],
+                        facecolor=action_cmap(norm_val),
+                        edgecolor='black',
+                        linewidth=0.3
+                    )
+                    axs[t].add_patch(rect)
+
+        axs[t].set_xlim(x_edge[0], x_edge[-1])
+        axs[t].set_ylim(y_edge[0], y_edge[-1])
+        axs[t].set_xlabel("Channel (Smoothed)")
+        axs[t].set_ylabel("Battery (Smoothed)")
+        axs[t].set_title(f"User {user_index} | Slots={slots_list[t]}")
+
+    fig.suptitle(f"User {user_index}: Action Bar Grid across Tests", fontsize=16)
+    plt.colorbar(plt.cm.ScalarMappable(cmap=action_cmap), ax=axs, location='right', label="Action (Normalized)")
+    plt.show()
+
 ## Command to randomly pick values----->>>>> np.random.randint(0, 7, size=(k.size * x.size, a.size), dtype=int)
 reward = np.empty((number_of_users, iterations+1), dtype=float)
 AOI = np.zeros((number_of_users, iterations+1), dtype=int)
@@ -1116,12 +1354,25 @@ for t in range(test):
 plot_userwise_density_all_tests(CH_user_tests, BT_user_tests, slots, smooth_span=50, bins=100)
 
 
-plot_userwise_reward_density_combined(AC_user_tests, CH_user_tests, BT_user_tests, REW_user_tests, slots,
-                                          smooth_span=50, bins=100)
+#plot_userwise_reward_density_combined(AC_user_tests, CH_user_tests, BT_user_tests, REW_user_tests, slots,
+#                                          smooth_span=50, bins=100)
 
-plot_userwise_action_density_combined(AC_user_tests, CH_user_tests, BT_user_tests, slots,
-                                          smooth_span=50, bins=100)
+#plot_userwise_action_density_combined(AC_user_tests, CH_user_tests, BT_user_tests, slots,
+ #                                         smooth_span=50, bins=100)
 
 
+#plot_userwise_reward_density_barplot(AC_user_tests, CH_user_tests, BT_user_tests, REW_user_tests, slots,
+#                                         smooth_span=50, bins=30)
+
+#plot_userwise_action_density_barplot(AC_user_tests, CH_user_tests, BT_user_tests, slots,
+ #                                        smooth_span=50, bins=30)
+
+
+plot_userwise_reward_bar_grid_all_tests(CH_user_tests, BT_user_tests, REW_user_tests, slots,
+                                            user_index=0, bins=10, smooth_span=50)
+
+
+plot_userwise_action_bar_grid_all_tests(CH_user_tests, BT_user_tests, AC_user_tests, slots,
+                                            user_index=0, bins=10, smooth_span=50)
 print (f"Explore: {explore}")
 print (f"Exploit: {exploit}")

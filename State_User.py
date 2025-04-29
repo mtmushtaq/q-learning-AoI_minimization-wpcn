@@ -25,6 +25,7 @@ def compute_energy_harvested(g_eh, time_duration, p):  # EQ 5
     return eh
 
 def get_channel(ce):  # valuta un dato valore ce (channel evaluation) e ritorna il corrispondente grado del canale (ch) basato su un range predefinito
+    print(f"channel evaluation: {ce}:")
     if ce < 0.25:
         ch = 0  # grado del canale
         return ch
