@@ -3,24 +3,38 @@
 #matplotlib.use('Qt5Agg')  # Or TkAgg 'Qt5Agg', 'GTK3Agg' depending on your system
 #from typing import Any
 import random as rd
+
+import matplotlib
 import numpy as np
 from numpy import ndarray, dtype
+from scipy.signal import square
+from scipy.stats import binned_statistic_2d
 from State_User import * #generate_rician_fading, gamma_EH, compute_energy_harvested
 from Discritize_state import get_dis_BT, get_dis_AT, CH_dist
 from SIC import *
 from User import User
+import matplotlib.patches as patches
+from scipy.stats import binned_statistic_2d
 #import pandas as pd
 from pandas import DataFrame
+import scipy.interpolate
+
+from scipy.interpolate import griddata
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+from mpl_toolkits.mplot3d import Axes3D
 
 # This code with an optimized Learning rate= 0.5, But we need to find the value of Epsilon for good convergence
 # define training parameters
-discount_factor = 0.9  # 0.001
-test = 2
+discount_factor = 0.95  # 0.001
+test = 5
 learning_rate = 0.01
 #define system parameters
 mu_bu= 0.05 # one unit of battery
-number_of_slots = 20
-number_of_users = 5
+number_of_slots = 150
+number_of_users = 50
 time_duration = 0.02
 p= 4.6
 dist_min = 1
@@ -28,7 +42,7 @@ dist_max = 30
 s_AAOI = []
 Gain = []
 Th= 0.2
-iterations = 500
+iterations = 25000
 Frame_size = []
 STD_AoI_u_AT = []
 STD_AoI_u_BT = []
@@ -38,8 +52,8 @@ explore = 0
 exploit = 0
 K_factor =  10
 decay_rate = 0.0001
-upsilon = 0.03 # One unit to transmit one replica
-d_slot = 1
+upsilon = 0.01 # One unit to transmit one replica
+d_slot = 20
 #u = np.empty(number_of_users, dtype=object)  # define users array
 #for i in range(number_of_users):
  #   u[i] = i + 1
@@ -253,13 +267,6 @@ def get_distr(pw):
         distr = np.array([0.6, 0.2, 0.1, 0.06, 0.04])
         return distr
 
-
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import seaborn as sns
-from mpl_toolkits.mplot3d import Axes3D
-
 def plot_action_reward_relations(AC_user_Mean, CH_mean, Battery_mean, Rew_u_mean, slots, smoothing_span=50):
     frames = np.arange(len(AC_user_Mean))
 
@@ -372,11 +379,6 @@ def plot_3d_action_vs_channel_battery(AC_user_Mean, CH_mean, Battery_mean, slots
     plt.tight_layout()
     plt.show()
 
-import numpy as np
-import matplotlib.pyplot as plt
-import scipy.interpolate
-
-from scipy.interpolate import griddata
 def plot_actions_vs_channel_contour(CH_mean, AC_user_Mean, Battery_mean, slots, smooth_span=50):
     # Smooth inside
     CH_mean_smooth = pd.Series(CH_mean).ewm(span=smooth_span).mean().to_numpy()
@@ -689,9 +691,6 @@ def plot_userwise_contours_all_tests(AC_user_tests, CH_user_tests, BT_user_tests
         fig2.suptitle(f"User {u}: Reward vs Channel and Battery across Tests", fontsize=16)
         plt.show()
 
-
-from scipy.stats import binned_statistic_2d
-
 def plot_userwise_density_all_tests(CH_user_tests, BT_user_tests, slots_list, smooth_span=50, bins=100):
     """
     Plot sample density heatmaps for each user across tests.
@@ -825,8 +824,6 @@ def plot_userwise_action_density_combined(AC_user_tests, CH_user_tests, BT_user_
         fig.suptitle(f"User {u}: Action + Density Overlay", fontsize=16)
         plt.show()
 
-import matplotlib.patches as patches
-
 def plot_userwise_reward_density_barplot(AC_user_tests, CH_user_tests, BT_user_tests, REW_user_tests, slots_list,
                                          smooth_span=50, bins=30):
     """
@@ -956,7 +953,6 @@ def plot_userwise_action_density_barplot(AC_user_tests, CH_user_tests, BT_user_t
         plt.show()
 
 
-from scipy.stats import binned_statistic_2d
 def plot_userwise_reward_bar_grid_all_tests(CH_user_tests, BT_user_tests, REW_user_tests, slots_list,
                                             user_index=0, bins=10, smooth_span=50):
     """
@@ -1063,6 +1059,75 @@ def plot_userwise_action_bar_grid_all_tests(CH_user_tests, BT_user_tests, AC_use
     plt.colorbar(plt.cm.ScalarMappable(cmap=action_cmap), ax=axs, location='right', label="Action (Normalized)")
     plt.show()
 
+def plot_gamma_histograms_per_test(G_user_tests, num_bins=50):
+    """
+    Plot normalized histograms (PDF-style) of raw gamma (G) for each user in every test.
+    One figure per test, with subplots per user.
+    """
+    num_tests, num_frames, num_users = G_user_tests.shape
+
+    for t in range(num_tests):
+        fig, axs = plt.subplots(1, num_users, figsize=(5 * num_users, 4), constrained_layout=True)
+
+        if num_users == 1:
+            axs = [axs]
+
+        for u in range(num_users):
+            gamma_vals = G_user_tests[t, :, u]
+
+            axs[u].hist(
+                gamma_vals,
+                bins=num_bins,
+                density=True,  # normalize to get PDF-style plot
+                alpha=0.8,
+                color='steelblue',
+                edgecolor='black'
+            )
+
+            axs[u].set_title(f"User {u}")
+            axs[u].set_xlabel("Gamma (Channel Gain)")
+            axs[u].set_ylabel("Density")
+            axs[u].grid(True)
+
+        fig.suptitle(f"Test {t}: Normalized Histograms of Gamma per User", fontsize=16)
+        plt.show()
+
+
+def plot_action_histograms_per_test(AC_user_tests, num_bins=10):
+    """
+    For each user, plot side-by-side bar histograms of actions across all tests.
+    Each test shown with different color, offset horizontally per bin.
+    """
+    num_tests, num_frames, num_users = AC_user_tests.shape
+    cmap = matplotlib.colormaps.get_cmap("tab10")
+
+    for u in range(num_users):
+        plt.figure(figsize=(10, 5))
+        width = 0.8 / num_tests  # Width of each bar per bin/test
+
+        for t in range(num_tests):
+            actions = AC_user_tests[t, :, u]
+            counts, bins = np.histogram(actions, bins=num_bins, density=True)
+            bin_centers = 0.5 * (bins[:-1] + bins[1:])
+            offset = (t - num_tests / 2) * width + width / 2  # center alignment
+
+            plt.bar(
+                bin_centers + offset,
+                counts,
+                width=width,
+                color=cmap(t),
+                edgecolor='black',
+                label=f"Test {t}"
+            )
+
+        plt.title(f"User {u}: Action Distributions across Tests (Bar Plot)")
+        plt.xlabel("Action Value")
+        plt.ylabel("Probability Density")
+        plt.legend()
+        plt.grid(True, axis='y')
+        plt.tight_layout()
+        plt.show()
+
 ## Command to randomly pick values----->>>>> np.random.randint(0, 7, size=(k.size * x.size, a.size), dtype=int)
 reward = np.empty((number_of_users, iterations+1), dtype=float)
 AOI = np.zeros((number_of_users, iterations+1), dtype=int)
@@ -1094,14 +1159,19 @@ AC_user_tests = np.empty((test, iterations, number_of_users), dtype=float)
 CH_user_tests = np.empty((test, iterations, number_of_users), dtype=float)
 BT_user_tests = np.empty((test, iterations, number_of_users), dtype=float)
 REW_user_tests = np.empty((test, iterations, number_of_users), dtype=float)
-
+G_user_tests = np.empty((test, iterations, number_of_users), dtype=float)
+Ch_Raw_tests = np.empty((test, iterations, number_of_users), dtype=float)
 for t in range(1, test+1):
     min_epsilon = 0.1
-    max_epsilon = 0.6
+    max_epsilon = 0.7
     Battery_f = np.empty((iterations, number_of_users), dtype=float)  # To save state of all users in current frame
     Ch_f = np.empty((iterations, number_of_users), dtype=float)
     AC_user_f = np.empty((iterations, number_of_users), dtype=int)
     Rew_u_f = np.empty((iterations, number_of_users), dtype=float)
+    G_Raw_f = np.empty((iterations, number_of_users), dtype=float)
+    CH_raw_f = np.empty((iterations, number_of_users), dtype=float)
+
+    dist = np.random.uniform(dist_min, dist_max, size= number_of_users)
     #q_tables = np.empty([number_of_users, k.size * x.size, a.size], dtype=float)
     #for user in range(np.size(users)):
      #   q_tables[user, :, :] = np.random.rand(k.size * x.size, a.size)
@@ -1127,7 +1197,7 @@ for t in range(1, test+1):
         for d in range (np.size(users)):
             CH_Raw[d] = generate_rician_fading(K_factor)
             users[d].channel = CH_Raw[d]
-            G_Raw[d] = gamma_EH(CH_Raw[d], dist_min, dist_max)
+            G_Raw[d] = gamma_EH(CH_Raw[d], dist[d]) #dist_min, dist_max)
             BT_Dis[d] = users[d].BT_units()
             CH_Dis [d] = get_channel(G_Raw[d])
             randx = np.random.random()
@@ -1246,7 +1316,7 @@ for t in range(1, test+1):
             for u in range(number_of_users):
                 CH_Raw_next[u] = generate_rician_fading(K_factor)
                 users[u].channel = CH_Raw_next[u]
-                G_Raw_next[u] = gamma_EH(CH_Raw_next[u], dist_min, dist_max)
+                G_Raw_next[u] = gamma_EH(CH_Raw_next[u], dist[u]) #dist_min, dist_max)
                 BT_Dis_next[u] = users[u].BT_units()
                 CH_Dis_next[u] = get_channel(G_Raw[u])
                 row_act = get_row(BT_Dis_next[u], CH_Dis_next[u])
@@ -1259,6 +1329,8 @@ for t in range(1, test+1):
         Ch_f [it_ind, :] = CH_Dis
         Battery_f [it_ind, :] = BT_Dis
         Rew_u_f[it_ind, :] = Rew_U
+        G_Raw_f[it_ind, :] = G_Raw
+        CH_raw_f [it_ind, :] = abs(CH_Raw)
         # Update AOI using current frame AOI and add it into next frame AOI so that it can be used for next frame
         #Update Next State
 
@@ -1266,6 +1338,8 @@ for t in range(1, test+1):
     CH_user_tests [t-1, :, :] = Ch_f
     BT_user_tests [t-1, :, :] = Battery_f
     REW_user_tests [t-1, :, :] = Rew_u_f
+    G_user_tests[t-1, :, :] = G_Raw_f
+    Ch_Raw_tests[t-1, :, :] = CH_raw_f
     AC_user_Mean [t-1, :] = np.mean(AC_user_f, axis=1)
     CH_mean [t-1, :] = np.mean(Ch_f, axis=1)
     Battery_mean [t-1, :] = np.mean(Battery_f, axis=1)
@@ -1333,11 +1407,11 @@ slots = []
 for t in range(test):
     slots.append(number_of_slots + d_slot*test - d_slot*t)
 #for t in range(test):
- #   plot_action_reward_relations(AC_user_Mean[t, :], CH_mean [t, :], Battery_mean [t, :], Rew_u_mean [t, :], slots, smoothing_span=50)
-  #  plot_3d_action_vs_channel_battery(AC_user_Mean [t, :], CH_mean [t, :], Battery_mean [t, :], slots)
-   # plot_actions_vs_channel_contour(CH_mean[t, :], AC_user_Mean[t, :], Battery_mean[t, :], slots)
-    #plot_reward_vs_actions_contour(AC_user_Mean [t, :], Rew_u_mean [t, :], CH_mean [t, :], slots)
-    #slots -=2
+ #   plot_action_reward_relations(AC_user_Mean[t, :], CH_mean [t, :], Battery_mean [t, :], Rew_u_mean [t, :], slots[t], smoothing_span=50)
+  #  plot_3d_action_vs_channel_battery(AC_user_Mean [t, :], CH_mean [t, :], Battery_mean [t, :], slots[t])
+   # plot_actions_vs_channel_contour(CH_mean[t, :], AC_user_Mean[t, :], Battery_mean[t, :], slots[t])
+    #plot_reward_vs_actions_contour(AC_user_Mean [t, :], Rew_u_mean [t, :], CH_mean [t, :], slots[t])
+    #slots -= d_slot
 
 #plot_reward_vs_actions_contour_all_tests (AC_user_Mean, Rew_u_mean, CH_mean, slots)
 
@@ -1351,28 +1425,31 @@ for t in range(test):
 
 #plot_userwise_contours_all_tests(AC_user_tests, CH_user_tests, BT_user_tests, REW_user_tests, slots, smooth_span=50)
 
-plot_userwise_density_all_tests(CH_user_tests, BT_user_tests, slots, smooth_span=50, bins=100)
+#plot_userwise_density_all_tests(CH_user_tests, BT_user_tests, slots, smooth_span=50, bins=100)
 
 
 #plot_userwise_reward_density_combined(AC_user_tests, CH_user_tests, BT_user_tests, REW_user_tests, slots,
-#                                          smooth_span=50, bins=100)
+   #                                       smooth_span=50, bins=100)
 
 #plot_userwise_action_density_combined(AC_user_tests, CH_user_tests, BT_user_tests, slots,
- #                                         smooth_span=50, bins=100)
+  #                                        smooth_span=50, bins=100)
 
 
 #plot_userwise_reward_density_barplot(AC_user_tests, CH_user_tests, BT_user_tests, REW_user_tests, slots,
-#                                         smooth_span=50, bins=30)
+    #                                     smooth_span=50, bins=30)
 
 #plot_userwise_action_density_barplot(AC_user_tests, CH_user_tests, BT_user_tests, slots,
  #                                        smooth_span=50, bins=30)
 
 
-plot_userwise_reward_bar_grid_all_tests(CH_user_tests, BT_user_tests, REW_user_tests, slots,
-                                            user_index=0, bins=10, smooth_span=50)
+#plot_userwise_reward_bar_grid_all_tests(CH_user_tests, BT_user_tests, REW_user_tests, slots,
+      #                                      user_index=0, bins=10, smooth_span=50)
 
 
-plot_userwise_action_bar_grid_all_tests(CH_user_tests, BT_user_tests, AC_user_tests, slots,
-                                            user_index=0, bins=10, smooth_span=50)
+#plot_userwise_action_bar_grid_all_tests(CH_user_tests, BT_user_tests, AC_user_tests, slots,
+ #                                           user_index=0, bins=10, smooth_span=50)
+
+plot_action_histograms_per_test(AC_user_tests, num_bins=10)
+
 print (f"Explore: {explore}")
 print (f"Exploit: {exploit}")
