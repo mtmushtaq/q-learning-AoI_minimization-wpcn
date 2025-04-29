@@ -15,12 +15,12 @@ from pandas import DataFrame
 # This code with an optimized Learning rate= 0.5, But we need to find the value of Epsilon for good convergence
 # define training parameters
 discount_factor = 0.9  # 0.001
-test = 4
+test = 8
 learning_rate = 0.0001
 #define system parameters
 mu_bu= 0.05 # one unit of battery
-number_of_slots = 60
-number_of_users = 40
+number_of_slots = 6
+number_of_users = 4
 time_duration = 0.05
 p= 4.6
 dist_min = 1
@@ -632,6 +632,10 @@ AC_user_Mean = np.empty((test, iterations), dtype=float)
 CH_mean = np.empty((test, iterations), dtype=float)
 Battery_mean = np.empty((test, iterations), dtype=float)
 Rew_u_mean =np.empty((test, iterations), dtype=float)
+AC_user_tests = np.empty((test, iterations, number_of_users), dtype=float)
+CH_user_tests = np.empty((test, iterations, number_of_users), dtype=float)
+BT_user_tests = np.empty((test, iterations, number_of_users), dtype=float)
+REW_user_tests = np.empty((test, iterations, number_of_users), dtype=float)
 
 for t in range(1, test+1):
     min_epsilon = 0.1
@@ -874,7 +878,7 @@ for t in range(test):
 
 #plot_reward_vs_actions_contour_all_tests (AC_user_Mean, Rew_u_mean, CH_mean, slots)
 
-plot_action_vs_channel_battery_all_tests(CH_mean, Battery_mean, AC_user_Mean, slots, smooth_span=50)
+#plot_action_vs_channel_battery_all_tests(CH_mean, Battery_mean, AC_user_Mean, slots, smooth_span=50)
 
 plot_action_vs_channel_battery_contour_highres(CH_mean, Battery_mean, AC_user_Mean, slots, smooth_span=50, save_pdf=True)
 
