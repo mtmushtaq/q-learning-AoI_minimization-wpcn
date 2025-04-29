@@ -15,13 +15,13 @@ from pandas import DataFrame
 # This code with an optimized Learning rate= 0.5, But we need to find the value of Epsilon for good convergence
 # define training parameters
 discount_factor = 0.9  # 0.001
-test = 8
-learning_rate = 0.0001
+test = 4
+learning_rate = 0.01
 #define system parameters
 mu_bu= 0.05 # one unit of battery
-number_of_slots = 6
-number_of_users = 4
-time_duration = 0.05
+number_of_slots = 20
+number_of_users = 5
+time_duration = 0.02
 p= 4.6
 dist_min = 1
 dist_max = 30
@@ -32,13 +32,14 @@ iterations = 25000
 Frame_size = []
 STD_AoI_u_AT = []
 STD_AoI_u_BT = []
-Batch_size = 500
+Batch_size = 250
 it_ind = 0
 explore = 0
 exploit = 0
 K_factor =  15
 decay_rate = 0.0001
-upsilon = 0.01 # One unit to transmit one replica
+upsilon = 0.03 # One unit to transmit one replica
+d_slot = 1
 #u = np.empty(number_of_users, dtype=object)  # define users array
 #for i in range(number_of_users):
  #   u[i] = i + 1
@@ -217,12 +218,12 @@ def get_row(pw, ch):
     #elif act < BT:
      #   rew = D_AOI + (2* act)
     #return rew
-def get_rew(B_AOI, A_AOI, BT, act, ch, max_AOI=100, max_BT=5, w1=0.7, w2=0.3, w3=0.3):
+def get_rew(B_AOI, A_AOI, BT, act, ch, max_AOI=100, max_BT=5, w1=0.7, w2=0.5, w3=0.5):
     D_AOI = B_AOI - A_AOI
-    D_AOI_norm = D_AOI #/ number_of_slots
-    act_norm = act #/ 5
-    ch_norm = ch #/ 7.0
-    BT_norm = BT #/ 5
+    D_AOI_norm = D_AOI / number_of_slots
+    act_norm = act / 5
+    ch_norm = ch / 7.0
+    BT_norm = BT / 5
 
     reward = 0
     if act == BT:
@@ -605,6 +606,225 @@ def plot_action_vs_channel_battery_3d_subplots(CH_mean, Battery_mean, AC_user_Me
     plt.show()
 
 
+def plot_userwise_contours_all_tests(AC_user_tests, CH_user_tests, BT_user_tests, REW_user_tests, slots_list,
+                                     smooth_span=50):
+    """
+    Plot contour plots for each user showing evolution over multiple tests.
+    Plots:
+        - Actions vs Channel & Battery
+        - Reward vs Channel & Battery
+    """
+    num_tests, num_frames, num_users = AC_user_tests.shape
+
+    for u in range(num_users):
+        print(f"🧩 Plotting User {u}...")
+
+        # -------------- Plot 1: Actions vs Channel & Battery --------------
+        fig1, axs1 = plt.subplots(1, num_tests, figsize=(5 * num_tests, 5), constrained_layout=True)
+
+        if num_tests == 1:
+            axs1 = [axs1]
+
+        for t in range(num_tests):
+            ch = pd.Series(CH_user_tests[t, :, u]).ewm(span=smooth_span).mean().to_numpy()
+            bt = pd.Series(BT_user_tests[t, :, u]).ewm(span=smooth_span).mean().to_numpy()
+            ac = pd.Series(AC_user_tests[t, :, u]).ewm(span=smooth_span).mean().to_numpy()
+
+            xi = np.linspace(min(ch), max(ch), 100)
+            yi = np.linspace(min(bt), max(bt), 100)
+            Xi, Yi = np.meshgrid(xi, yi)
+
+            zi = griddata((ch, bt), ac, (Xi, Yi), method='cubic')
+
+            try:
+                zi = griddata((ch, bt), ac, (Xi, Yi), method='cubic')
+            except Exception as e:
+                print(f"⚠️ Skipping User {u}, Test {t} due to flat input: {e}")
+                continue
+
+            cs = axs1[t].contourf(Xi, Yi, zi, levels=20, cmap='viridis')
+            fig1.colorbar(cs, ax=axs1[t])
+            cs2 = axs1[t].contour(Xi, Yi, zi, levels=10, colors='black', linewidths=0.5)
+            axs1[t].clabel(cs2, inline=True, fontsize=8, fmt="%.1f")
+
+            axs1[t].set_xlabel("Channel (Smoothed)")
+            axs1[t].set_ylabel("Battery (Smoothed)")
+            axs1[t].set_title(f"User {u} | Slots={slots_list[t]}")
+
+        fig1.suptitle(f"User {u}: Actions vs Channel and Battery across Tests", fontsize=16)
+        plt.show()
+
+        # -------------- Plot 2: Reward vs Channel & Battery --------------
+        fig2, axs2 = plt.subplots(1, num_tests, figsize=(5 * num_tests, 5), constrained_layout=True)
+
+        if num_tests == 1:
+            axs2 = [axs2]
+
+        for t in range(num_tests):
+            ch = pd.Series(CH_user_tests[t, :, u]).ewm(span=smooth_span).mean().to_numpy()
+            bt = pd.Series(BT_user_tests[t, :, u]).ewm(span=smooth_span).mean().to_numpy()
+            rew = pd.Series(REW_user_tests[t, :, u]).ewm(span=smooth_span).mean().to_numpy()
+
+            xi = np.linspace(min(ch), max(ch), 100)
+            yi = np.linspace(min(bt), max(bt), 100)
+            Xi, Yi = np.meshgrid(xi, yi)
+
+            zi = griddata((ch, bt), rew, (Xi, Yi), method='cubic')
+
+            try:
+                zi = griddata((ch, bt), rew, (Xi, Yi), method='cubic')
+            except Exception as e:
+                print(f"⚠️ Skipping Reward plot for User {u}, Test {t} due to flat input: {e}")
+                continue
+
+            cs = axs2[t].contourf(Xi, Yi, zi, levels=20, cmap='plasma')
+            fig2.colorbar(cs, ax=axs2[t])
+            cs2 = axs2[t].contour(Xi, Yi, zi, levels=10, colors='black', linewidths=0.5)
+            axs2[t].clabel(cs2, inline=True, fontsize=8, fmt="%.1f")
+
+            axs2[t].set_xlabel("Channel (Smoothed)")
+            axs2[t].set_ylabel("Battery (Smoothed)")
+            axs2[t].set_title(f"User {u} | Slots={slots_list[t]}")
+
+        fig2.suptitle(f"User {u}: Reward vs Channel and Battery across Tests", fontsize=16)
+        plt.show()
+
+
+from scipy.stats import binned_statistic_2d
+
+def plot_userwise_density_all_tests(CH_user_tests, BT_user_tests, slots_list, smooth_span=50, bins=100):
+    """
+    Plot sample density heatmaps for each user across tests.
+    Shows how often each (Channel, Battery) combination occurs.
+    """
+    num_tests, num_frames, num_users = CH_user_tests.shape
+
+    for u in range(num_users):
+        print(f"📊 Density Heatmap for User {u}...")
+
+        fig, axs = plt.subplots(1, num_tests, figsize=(5 * num_tests, 5), constrained_layout=True)
+        if num_tests == 1:
+            axs = [axs]
+
+        for t in range(num_tests):
+            ch = pd.Series(CH_user_tests[t, :, u]).ewm(span=smooth_span).mean().to_numpy()
+            bt = pd.Series(BT_user_tests[t, :, u]).ewm(span=smooth_span).mean().to_numpy()
+
+            # Compute 2D histogram / sample density
+            stat, x_edge, y_edge, _ = binned_statistic_2d(
+                ch, bt, None, statistic='count', bins=bins
+            )
+
+            x_centers = 0.5 * (x_edge[:-1] + x_edge[1:])
+            y_centers = 0.5 * (y_edge[:-1] + y_edge[1:])
+            Xi, Yi = np.meshgrid(x_centers, y_centers)
+
+            cs = axs[t].contourf(Xi, Yi, stat.T, levels=20, cmap='Blues')
+            fig.colorbar(cs, ax=axs[t])
+            axs[t].set_xlabel("Channel (Smoothed)")
+            axs[t].set_ylabel("Battery (Smoothed)")
+            axs[t].set_title(f"User {u} | Slots={slots_list[t]}\nSample Density")
+
+        fig.suptitle(f"User {u}: Sample Density across Tests", fontsize=16)
+        plt.show()
+
+
+def plot_userwise_reward_density_combined(AC_user_tests, CH_user_tests, BT_user_tests, REW_user_tests, slots_list,
+                                          smooth_span=50, bins=100):
+    """
+    Combined plot: Reward contour (plasma) overlaid with Sample Density heatmap (Blues)
+    """
+    num_tests, num_frames, num_users = REW_user_tests.shape
+
+    for u in range(num_users):
+        print(f"🌀 Reward + Density for User {u}")
+
+        fig, axs = plt.subplots(1, num_tests, figsize=(5 * num_tests, 5), constrained_layout=True)
+        if num_tests == 1:
+            axs = [axs]
+
+        for t in range(num_tests):
+            ch = pd.Series(CH_user_tests[t, :, u]).ewm(span=smooth_span).mean().to_numpy()
+            bt = pd.Series(BT_user_tests[t, :, u]).ewm(span=smooth_span).mean().to_numpy()
+            rew = pd.Series(REW_user_tests[t, :, u]).ewm(span=smooth_span).mean().to_numpy()
+
+            # Grid for contour
+            xi = np.linspace(min(ch), max(ch), 100)
+            yi = np.linspace(min(bt), max(bt), 100)
+            Xi, Yi = np.meshgrid(xi, yi)
+
+            try:
+                zi = griddata((ch, bt), rew, (Xi, Yi), method='cubic')
+            except Exception as e:
+                print(f"⚠️ Skipping reward for User {u}, Test {t}: {e}")
+                continue
+
+            # Reward contours
+            cs = axs[t].contourf(Xi, Yi, zi, levels=20, cmap='plasma', alpha=0.8)
+            fig.colorbar(cs, ax=axs[t], label="Reward")
+
+            # Density overlay
+            stat, x_edge, y_edge, _ = binned_statistic_2d(ch, bt, None, statistic='count', bins=bins)
+            x_centers = 0.5 * (x_edge[:-1] + x_edge[1:])
+            y_centers = 0.5 * (y_edge[:-1] + y_edge[1:])
+            Xi_d, Yi_d = np.meshgrid(x_centers, y_centers)
+            axs[t].contour(Xi_d, Yi_d, stat.T, levels=10, cmap='Blues', linewidths=0.8)
+
+            axs[t].set_title(f"User {u} | Slots={slots_list[t]}")
+            axs[t].set_xlabel("Channel (Smoothed)")
+            axs[t].set_ylabel("Battery (Smoothed)")
+
+        fig.suptitle(f"User {u}: Reward + Density Overlay", fontsize=16)
+        plt.show()
+
+
+def plot_userwise_action_density_combined(AC_user_tests, CH_user_tests, BT_user_tests, slots_list,
+                                          smooth_span=50, bins=100):
+    """
+    Combined plot: Action contour (viridis) overlaid with Sample Density heatmap (Blues)
+    """
+    num_tests, num_frames, num_users = AC_user_tests.shape
+
+    for u in range(num_users):
+        print(f"🎯 Action + Density for User {u}")
+
+        fig, axs = plt.subplots(1, num_tests, figsize=(5 * num_tests, 5), constrained_layout=True)
+        if num_tests == 1:
+            axs = [axs]
+
+        for t in range(num_tests):
+            ch = pd.Series(CH_user_tests[t, :, u]).ewm(span=smooth_span).mean().to_numpy()
+            bt = pd.Series(BT_user_tests[t, :, u]).ewm(span=smooth_span).mean().to_numpy()
+            ac = pd.Series(AC_user_tests[t, :, u]).ewm(span=smooth_span).mean().to_numpy()
+
+            xi = np.linspace(min(ch), max(ch), 100)
+            yi = np.linspace(min(bt), max(bt), 100)
+            Xi, Yi = np.meshgrid(xi, yi)
+
+            try:
+                zi = griddata((ch, bt), ac, (Xi, Yi), method='cubic')
+            except Exception as e:
+                print(f"⚠️ Skipping action for User {u}, Test {t}: {e}")
+                continue
+
+            # Action contours
+            cs = axs[t].contourf(Xi, Yi, zi, levels=20, cmap='viridis', alpha=0.8)
+            fig.colorbar(cs, ax=axs[t], label="Action")
+
+            # Density overlay
+            stat, x_edge, y_edge, _ = binned_statistic_2d(ch, bt, None, statistic='count', bins=bins)
+            x_centers = 0.5 * (x_edge[:-1] + x_edge[1:])
+            y_centers = 0.5 * (y_edge[:-1] + y_edge[1:])
+            Xi_d, Yi_d = np.meshgrid(x_centers, y_centers)
+            axs[t].contour(Xi_d, Yi_d, stat.T, levels=10, cmap='Blues', linewidths=0.8)
+
+            axs[t].set_title(f"User {u} | Slots={slots_list[t]}")
+            axs[t].set_xlabel("Channel (Smoothed)")
+            axs[t].set_ylabel("Battery (Smoothed)")
+
+        fig.suptitle(f"User {u}: Action + Density Overlay", fontsize=16)
+        plt.show()
+
 ## Command to randomly pick values----->>>>> np.random.randint(0, 7, size=(k.size * x.size, a.size), dtype=int)
 reward = np.empty((number_of_users, iterations+1), dtype=float)
 AOI = np.zeros((number_of_users, iterations+1), dtype=int)
@@ -639,7 +859,7 @@ REW_user_tests = np.empty((test, iterations, number_of_users), dtype=float)
 
 for t in range(1, test+1):
     min_epsilon = 0.1
-    max_epsilon = 0.9
+    max_epsilon = 0.6
     Battery_f = np.empty((iterations, number_of_users), dtype=float)  # To save state of all users in current frame
     Ch_f = np.empty((iterations, number_of_users), dtype=float)
     AC_user_f = np.empty((iterations, number_of_users), dtype=int)
@@ -803,12 +1023,17 @@ for t in range(1, test+1):
         Rew_u_f[it_ind, :] = Rew_U
         # Update AOI using current frame AOI and add it into next frame AOI so that it can be used for next frame
         #Update Next State
+
+    AC_user_tests [t-1, :, :] = AC_user_f
+    CH_user_tests [t-1, :, :] = Ch_f
+    BT_user_tests [t-1, :, :] = Battery_f
+    REW_user_tests [t-1, :, :] = Rew_u_f
     AC_user_Mean [t-1, :] = np.mean(AC_user_f, axis=1)
     CH_mean [t-1, :] = np.mean(Ch_f, axis=1)
     Battery_mean [t-1, :] = np.mean(Battery_f, axis=1)
     Rew_u_mean [t-1, :] = np.mean(Rew_u_f, axis=1)
     G [t-1]= number_of_users / number_of_slots
-    number_of_slots -= 2
+    number_of_slots -= d_slot
     #number_of_users += 1
     print(f"Test {t} Finished")
 
@@ -868,7 +1093,7 @@ plt.show()
 
 slots = []
 for t in range(test):
-    slots.append(number_of_slots + 2*test - 2*t)
+    slots.append(number_of_slots + d_slot*test - d_slot*t)
 #for t in range(test):
  #   plot_action_reward_relations(AC_user_Mean[t, :], CH_mean [t, :], Battery_mean [t, :], Rew_u_mean [t, :], slots, smoothing_span=50)
   #  plot_3d_action_vs_channel_battery(AC_user_Mean [t, :], CH_mean [t, :], Battery_mean [t, :], slots)
@@ -880,11 +1105,23 @@ for t in range(test):
 
 #plot_action_vs_channel_battery_all_tests(CH_mean, Battery_mean, AC_user_Mean, slots, smooth_span=50)
 
-plot_action_vs_channel_battery_contour_highres(CH_mean, Battery_mean, AC_user_Mean, slots, smooth_span=50, save_pdf=True)
+#plot_action_vs_channel_battery_contour_highres(CH_mean, Battery_mean, AC_user_Mean, slots, smooth_span=50, save_pdf=True)
 
-plot_action_vs_channel_battery_3d(CH_mean, Battery_mean, AC_user_Mean, slots, smooth_span=50, save_pdf=True)
+#plot_action_vs_channel_battery_3d(CH_mean, Battery_mean, AC_user_Mean, slots, smooth_span=50, save_pdf=True)
 
-plot_action_vs_channel_battery_3d_subplots(CH_mean, Battery_mean, AC_user_Mean, slots, smooth_span=50)
+#plot_action_vs_channel_battery_3d_subplots(CH_mean, Battery_mean, AC_user_Mean, slots, smooth_span=50)
+
+#plot_userwise_contours_all_tests(AC_user_tests, CH_user_tests, BT_user_tests, REW_user_tests, slots, smooth_span=50)
+
+plot_userwise_density_all_tests(CH_user_tests, BT_user_tests, slots, smooth_span=50, bins=100)
+
+
+plot_userwise_reward_density_combined(AC_user_tests, CH_user_tests, BT_user_tests, REW_user_tests, slots,
+                                          smooth_span=50, bins=100)
+
+plot_userwise_action_density_combined(AC_user_tests, CH_user_tests, BT_user_tests, slots,
+                                          smooth_span=50, bins=100)
+
 
 print (f"Explore: {explore}")
 print (f"Exploit: {exploit}")
