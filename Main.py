@@ -29,11 +29,11 @@ from mpl_toolkits.mplot3d import Axes3D
 # This code with an optimized Learning rate= 0.5, But we need to find the value of Epsilon for good convergence
 # define training parameters
 discount_factor = 0.9  # 0.001
-test = 5
+test = 3
 learning_rate = 0.0001
 #define system parameters
 mu_bu= 0.05 # one unit of battery
-number_of_slots = 200
+number_of_slots = 250
 number_of_users = 120
 time_duration = 0.02
 p= 4.6
@@ -53,7 +53,7 @@ exploit = 0
 K_factor =  5
 decay_rate = 0.0001
 upsilon = 0.02 # One unit to transmit one replica
-d_slot = 10
+d_slot = 50
 #u = np.empty(number_of_users, dtype=object)  # define users array
 #for i in range(number_of_users):
  #   u[i] = i + 1
