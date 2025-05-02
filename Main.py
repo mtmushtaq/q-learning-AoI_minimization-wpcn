@@ -42,7 +42,7 @@ dist_max = 30
 s_AAOI = []
 Gain = []
 Th= 0.2
-iterations = 10000
+iterations = 100000
 Frame_size = []
 STD_AoI_u_AT = []
 STD_AoI_u_BT = []
@@ -50,7 +50,7 @@ Batch_size = 100
 it_ind = 0
 explore = 0
 exploit = 0
-K_factor =  5
+K_factor =  10
 decay_rate = 0.0001
 upsilon = 0.02 # One unit to transmit one replica
 d_slot = 50
@@ -1432,9 +1432,9 @@ for i in range(number_of_users):  # popola il vettore degli utenti
     # users[i] = i + 1
     users.append(User(id=i, mu=upsilon, initial_battery_level=0.05))  # inizializza ogni utente con un livello di batteria di 0.005
 
-q_tables = np.empty([number_of_users, k.size * x.size, a.size], dtype=float)
-for user in range(np.size(users)):
-    q_tables[user, :, :] = np.random.rand(k.size * x.size, a.size)
+#q_tables = np.empty([number_of_users, k.size * x.size, a.size], dtype=float)
+#for user in range(np.size(users)):
+ #   q_tables[user, :, :] = np.random.rand(k.size * x.size, a.size)
 #print(f"first Q Table {q_tables}")
 
 AOI_users = np.empty((iterations*test, number_of_users), dtype=int)
@@ -1453,9 +1453,9 @@ BT_user_tests = np.empty((test, iterations, number_of_users), dtype=float)
 REW_user_tests = np.empty((test, iterations, number_of_users), dtype=float)
 G_user_tests = np.empty((test, iterations, number_of_users), dtype=float)
 Ch_Raw_tests = np.empty((test, iterations, number_of_users), dtype=float)
+min_epsilon = 0.3
+max_epsilon = 0.9
 for t in range(1, test+1):
-    min_epsilon = 0.3
-    max_epsilon = 0.9
     Battery_f = np.empty((iterations, number_of_users), dtype=float)  # To save state of all users in current frame
     Ch_f = np.empty((iterations, number_of_users), dtype=float)
     AC_user_f = np.empty((iterations, number_of_users), dtype=int)
@@ -1464,9 +1464,9 @@ for t in range(1, test+1):
     CH_raw_f = np.empty((iterations, number_of_users), dtype=float)
 
     dist = np.random.uniform(dist_min, dist_max, size= number_of_users)
-    #q_tables = np.empty([number_of_users, k.size * x.size, a.size], dtype=float)
-    #for user in range(np.size(users)):
-     #   q_tables[user, :, :] = np.random.rand(k.size * x.size, a.size)
+    q_tables = np.empty([number_of_users, k.size * x.size, a.size], dtype=float)
+    for user in range(np.size(users)):
+        q_tables[user, :, :] = np.random.rand(k.size * x.size, a.size)
     for it_ind in range(0, iterations):
         #print(f"Iteration: {it_ind}")
         epsilon = min_epsilon + (max_epsilon - min_epsilon) * np.exp(-decay_rate * it_ind)
@@ -1639,6 +1639,7 @@ for t in range(1, test+1):
     Rew_u_mean [t-1, :] = np.mean(Rew_u_f, axis=1)
     G [t-1]= number_of_users / number_of_slots
     number_of_slots -= d_slot
+    min_epsilon += 0.05
     #number_of_users += 1
     print(f"Test {t} Finished")
 
