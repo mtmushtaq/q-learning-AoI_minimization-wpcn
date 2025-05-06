@@ -104,3 +104,32 @@ def capture_effect_SIC(slot_aloc_f, number_of_slots, number_of_users, G_raw):
 
     return decoded_users
 
+
+
+
+discount_factor = 0.9  # 0.001
+test = 3
+learning_rate = 0.0001
+#define system parameters
+mu_bu= 0.05 # one unit of battery
+number_of_slots = 100
+number_of_users = 25
+time_duration = 0.01
+p= 4.6
+dist_min = 1
+dist_max = 30
+s_AAOI = []
+Gain = []
+Th= 0.2
+iterations = 20000
+Frame_size = []
+STD_AoI_u_AT = []
+STD_AoI_u_BT = []
+Batch_size = 100
+it_ind = 0
+explore = 0
+exploit = 0
+K_factor =  12
+decay_rate = 0.0001
+upsilon = 0.01 # One unit to transmit one replica
+d_slot = 10

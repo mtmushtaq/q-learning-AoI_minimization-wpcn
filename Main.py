@@ -28,32 +28,32 @@ from mpl_toolkits.mplot3d import Axes3D
 
 # This code with an optimized Learning rate= 0.5, But we need to find the value of Epsilon for good convergence
 # define training parameters
-discount_factor = 0.9  # 0.001
-test = 3
-learning_rate = 0.0001
+discount_factor = 0.3  # 0.001
+test = 5
+learning_rate = 0.001
 #define system parameters
 mu_bu= 0.05 # one unit of battery
-number_of_slots = 250
-number_of_users = 120
-time_duration = 0.02
-p= 4.6
+number_of_slots = 15
+number_of_users = 3
+time_duration = 0.5
+p= 46
 dist_min = 1
-dist_max = 30
+dist_max = 20
 s_AAOI = []
 Gain = []
 Th= 0.2
-iterations = 100000
+iterations = 1000
 Frame_size = []
 STD_AoI_u_AT = []
 STD_AoI_u_BT = []
-Batch_size = 100
+Batch_size = 1
 it_ind = 0
 explore = 0
 exploit = 0
-K_factor =  10
-decay_rate = 0.0001
-upsilon = 0.02 # One unit to transmit one replica
-d_slot = 50
+K_factor =  15
+decay_rate = 0.0005
+upsilon = 0.001 # One unit to transmit one replica
+d_slot = 8
 #u = np.empty(number_of_users, dtype=object)  # define users array
 #for i in range(number_of_users):
  #   u[i] = i + 1
@@ -232,18 +232,17 @@ def get_row(pw, ch):
     #elif act < BT:
      #   rew = D_AOI + (2* act)
     #return rew
-def get_rew(B_AOI, A_AOI, BT, act, ch, max_AOI=100, max_BT=5, w1=1, w2=0.7, w3=0.7):
+def get_rew(B_AOI, A_AOI, BT, act, ch, max_AOI=100, max_BT=5, w1=0.9, w2=0.3, w3=0.3):
     D_AOI = B_AOI - A_AOI
     D_AOI_norm = D_AOI / number_of_slots
     act_norm = act / 5
     ch_norm = ch / 7.0
     BT_norm = BT / 5
-
     reward = 0
-    if act == BT:
-        reward = w1 * D_AOI_norm + w2 * (act_norm / (ch_norm + 0.1)) + w3 * BT_norm
-    elif act < BT:
-        reward = w1 * D_AOI_norm + w2 * (2 * act_norm) + w3 * BT_norm
+    if act == BT and ch >= 4:
+        reward = w1 * np.clip(D_AOI, 0, number_of_slots) + w2 * (act_norm / (ch_norm + 0.1)) + w3 * BT_norm
+    else:
+        reward = w1 * np.clip(D_AOI, 0, number_of_slots) + w2 * (2 * act_norm) + w3 * BT_norm
     return reward
 
 
@@ -255,16 +254,20 @@ def get_distr(pw):
         distr = np.array([1])
         return distr
     elif pw == 2:
-        distr = np.array([0.75, 0.25])
+        #distr = np.array([0.75, 0.25])
+        distr = np.array([0.5, 0.5])
         return distr
     elif pw == 3:
-        distr = np.array([0.7, 0.2, 0.1])
+        #distr = np.array([0.7, 0.2, 0.1])
+        distr = np.array([0.34, 0.33, 0.33])
         return distr
     elif pw == 4:
-        distr = np.array([0.625, 0.2083, 0.1042, 0.0625])
+        #distr = np.array([0.625, 0.2083, 0.1042, 0.0625])
+        distr = np.array([0.25, 0.25, 0.25, 0.25])
         return distr
     elif pw == 5:
-        distr = np.array([0.6, 0.2, 0.1, 0.06, 0.04])
+        #distr = np.array([0.6, 0.2, 0.1, 0.06, 0.04])
+        distr = np.array([0.2, 0.2, 0.2, 0.2, 0.2])
         return distr
     return distr
 
@@ -1419,18 +1422,220 @@ def plot_battery_delta_over_frames(BT_user_tests, smooth_span=50):
     plt.tight_layout()
     plt.show()
 
+
+def plot_action_vs_battery_combined(CH_user_tests, BT_user_tests, AC_user_tests, smooth_span=50, num_bins=20):
+    num_tests = AC_user_tests.shape[0]
+    colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple',
+              'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan']
+
+    plt.figure(figsize=(10, 6))
+
+    for t in range(num_tests):
+        bt = pd.DataFrame(BT_user_tests[t]).ewm(span=smooth_span, axis=0).mean().to_numpy().flatten()
+        ac = pd.DataFrame(AC_user_tests[t]).ewm(span=smooth_span, axis=0).mean().to_numpy().flatten()
+
+        bins = np.linspace(min(bt), max(bt), num_bins + 1)
+        bin_centers = 0.5 * (bins[:-1] + bins[1:])
+        indices = np.digitize(bt, bins) - 1
+
+        avg_action = [np.mean(ac[indices == i]) if np.any(indices == i) else np.nan for i in range(num_bins)]
+
+        plt.plot(bin_centers, avg_action, marker='o', label=f'Test {t}', color=colors[t % len(colors)])
+
+    plt.title("Average Action vs Battery Level (All Tests)")
+    plt.xlabel("Battery (Smoothed)")
+    plt.ylabel("Avg. Action")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_userwise_action_histograms(AC_user_tests, num_bins=10):
+    num_tests, num_frames, num_users = AC_user_tests.shape
+    num_cols = 5
+    num_rows = int(np.ceil(num_users / num_cols))
+
+    colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple',
+              'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan']
+
+    fig, axs = plt.subplots(num_rows, num_cols, figsize=(4 * num_cols, 3.5 * num_rows), constrained_layout=True)
+    axs = axs.flatten()
+
+    for u in range(num_users):
+        for t in range(num_tests):
+            ac = AC_user_tests[t, :, u]
+            axs[u].hist(ac, bins=num_bins, alpha=0.5, label=f'Test {t}',
+                        color=colors[t % len(colors)], density=True)
+        axs[u].set_title(f"User {u}")
+        axs[u].set_xlabel("Action")
+        axs[u].set_ylabel("Density")
+        axs[u].legend(fontsize="x-small")
+
+    for i in range(num_users, len(axs)):
+        fig.delaxes(axs[i])
+
+    fig.suptitle("Action Histograms Per User Across Tests", fontsize=18)
+    plt.show()
+
+
+def plot_userwise_action_grids(CH_user_tests, BT_user_tests, AC_user_tests, bins=40, smooth_span=50):
+    """
+    Generate per-user 2D bar-style action grids over (channel, battery) for each test.
+    Each subplot = a test for a single user.
+    """
+    num_tests, num_frames, num_users = AC_user_tests.shape
+    num_cols = min(5, num_tests)
+    num_rows = (num_tests + num_cols - 1) // num_cols
+    cmap = plt.get_cmap("viridis")
+
+    for u in range(num_users):
+        fig, axs = plt.subplots(num_rows, num_cols, figsize=(5 * num_cols, 5 * num_rows), constrained_layout=True)
+        axs = axs.flatten()
+
+        # Global min/max across this user’s tests
+        all_vals = []
+        for t in range(num_tests):
+            val = pd.DataFrame(AC_user_tests[t, :, u]).ewm(span=smooth_span).mean().to_numpy()
+            all_vals.extend(val[~np.isnan(val)])
+        vmin, vmax = np.min(all_vals), np.max(all_vals)
+
+        for t in range(num_tests):
+            ch = pd.Series(CH_user_tests[t, :, u]).ewm(span=smooth_span).mean().to_numpy()
+            bt = pd.Series(BT_user_tests[t, :, u]).ewm(span=smooth_span).mean().to_numpy()
+            val = pd.Series(AC_user_tests[t, :, u]).ewm(span=smooth_span).mean().to_numpy()
+
+            stat, x_edge, y_edge, _ = binned_statistic_2d(ch, bt, val, statistic='mean', bins=bins)
+
+            for i in range(len(x_edge) - 1):
+                for j in range(len(y_edge) - 1):
+                    v = stat[i, j]
+                    if not np.isnan(v):
+                        norm_val = (v - vmin) / (vmax - vmin + 1e-8)
+                        rect = patches.Rectangle(
+                            (x_edge[i], y_edge[j]),
+                            x_edge[i + 1] - x_edge[i],
+                            y_edge[j + 1] - y_edge[j],
+                            facecolor=cmap(norm_val),
+                            edgecolor='black',
+                            linewidth=0.1
+                        )
+                        axs[t].add_patch(rect)
+
+            axs[t].set_xlim(x_edge[0], x_edge[-1])
+            axs[t].set_ylim(y_edge[0], y_edge[-1])
+            axs[t].set_xlabel("Channel (Smoothed)")
+            axs[t].set_ylabel("Battery (Smoothed)")
+            axs[t].set_title(f"User {u} – Test {t}")
+
+        for i in range(num_tests, len(axs)):
+            fig.delaxes(axs[i])
+
+        sm = plt.cm.ScalarMappable(cmap=cmap)
+        sm.set_array([vmin, vmax])
+        fig.colorbar(sm, ax=axs, location='right', label="Action")
+        fig.suptitle(f"User {u}: Action Block Grid Across Tests", fontsize=18)
+        plt.show()
+
+def plot_userwise_action_heatmaps(AC_user_tests, num_actions=6):
+    """
+    Plot a heatmap per user showing action distribution across tests.
+    Rows = Actions, Columns = Tests, Color = Density
+    """
+    num_tests, num_frames, num_users = AC_user_tests.shape
+    num_cols = 5
+    num_rows = int(np.ceil(num_users / num_cols))
+
+    fig, axs = plt.subplots(num_rows, num_cols, figsize=(4 * num_cols, 3.5 * num_rows), constrained_layout=True)
+    axs = axs.flatten()
+
+    for u in range(num_users):
+        # Initialize action frequency matrix (actions x tests)
+        action_matrix = np.zeros((num_actions, num_tests))
+
+        for t in range(num_tests):
+            actions = AC_user_tests[t, :, u]
+            hist, _ = np.histogram(actions, bins=np.arange(num_actions+1), density=True)
+            action_matrix[:, t] = hist
+
+        sns.heatmap(action_matrix, ax=axs[u], cmap="YlGnBu", cbar=False, annot=True, fmt=".2f",
+                    xticklabels=[f'T{t}' for t in range(num_tests)],
+                    yticklabels=[f'A{i}' for i in range(num_actions)])
+        axs[u].set_title(f"User {u}")
+
+    for i in range(num_users, len(axs)):
+        fig.delaxes(axs[i])
+
+    fig.suptitle("User-wise Action Distribution Heatmaps (Action x Test)", fontsize=18)
+    plt.show()
+
+def plot_user_slot_activity_histograms(slot_aloc_test):
+    """
+    Plot user activity (avg slot usage) as histograms per test.
+    slot_aloc_test: shape [tests, users]
+    """
+    num_tests, num_users = slot_aloc_test.shape
+    fig, axs = plt.subplots(1, num_tests, figsize=(5 * num_tests, 4), constrained_layout=True)
+
+    if num_tests == 1:
+        axs = [axs]
+
+    for t in range(num_tests):
+        axs[t].bar(range(num_users), slot_aloc_test[t], color='mediumorchid', edgecolor='black')
+        axs[t].set_title(f"Test {t}")
+        axs[t].set_xlabel("User")
+        axs[t].set_ylabel("Mean Slot Usage")
+        axs[t].set_xticks(range(num_users))
+        axs[t].grid(True, axis='y')
+
+    fig.suptitle("Mean Slot Selection Activity per User Across Tests", fontsize=16)
+    plt.show()
+
+def plot_idle_slot_trend(idle_slots):
+    """
+    Plot average and per-iteration idle slots for each test.
+
+    Parameters:
+        idle_slots: np.array [tests × iterations]
+    """
+    num_tests, num_iterations = idle_slots.shape
+    plt.figure(figsize=(10, 6))
+
+    for t in range(num_tests):
+        plt.plot(range(num_iterations), idle_slots[t], label=f"Test {t}", alpha=0.7)
+
+    plt.xlabel("Iteration")
+    plt.ylabel("Idle Slots")
+    plt.title("Idle Slot Evolution Across Iterations")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+    # Optional: plot average idle slots per test
+    avg_idle = np.mean(idle_slots, axis=1)
+    plt.figure(figsize=(8, 4))
+    plt.bar(range(num_tests), avg_idle, color='orange')
+    plt.xlabel("Test")
+    plt.ylabel("Average Idle Slots")
+    plt.title("Average Idle Slots per Test")
+    plt.grid(axis='y')
+    plt.tight_layout()
+    plt.show()
+
+
 ## Command to randomly pick values----->>>>> np.random.randint(0, 7, size=(k.size * x.size, a.size), dtype=int)
-reward = np.empty((number_of_users, iterations+1), dtype=float)
-AOI = np.zeros((number_of_users, iterations+1), dtype=int)
+#reward = np.empty((number_of_users, iterations+1), dtype=float)
+#AOI = np.zeros((number_of_users, iterations+1), dtype=int)
 
 #discount_factor = 0.9
 #learning_rate = 0.001
 # step_size_ep= (1-0.4)/iterations
 
-users = []
-for i in range(number_of_users):  # popola il vettore degli utenti
+#users = []
+#for i in range(number_of_users):  # popola il vettore degli utenti
     # users[i] = i + 1
-    users.append(User(id=i, mu=upsilon, initial_battery_level=0.05))  # inizializza ogni utente con un livello di batteria di 0.005
+ #   users.append(User(id=i, mu=upsilon, initial_battery_level=0.05))  # inizializza ogni utente con un livello di batteria di 0.005
 
 #q_tables = np.empty([number_of_users, k.size * x.size, a.size], dtype=float)
 #for user in range(np.size(users)):
@@ -1453,16 +1658,27 @@ BT_user_tests = np.empty((test, iterations, number_of_users), dtype=float)
 REW_user_tests = np.empty((test, iterations, number_of_users), dtype=float)
 G_user_tests = np.empty((test, iterations, number_of_users), dtype=float)
 Ch_Raw_tests = np.empty((test, iterations, number_of_users), dtype=float)
-min_epsilon = 0.3
-max_epsilon = 0.9
+slot_aloc_test = np.zeros ((test, number_of_users), dtype=float)
+idle_slots = np.zeros((test, iterations), dtype=int)
+#slot_aloc_test = []  # List of (users × slots) matrices
 for t in range(1, test+1):
+    min_epsilon = 0.1
+    max_epsilon = 0.9
+    reward = np.empty((number_of_users, iterations + 1), dtype=float)
+    AOI = np.zeros((number_of_users, iterations + 1), dtype=int)
+    AOI_af= np.ones(number_of_users, dtype=int)
+    users = []
+    for i in range(number_of_users):  # popola il vettore degli utenti
+        # users[i] = i + 1
+        users.append(User(id=i, mu=upsilon,
+                          initial_battery_level=0.05))  # inizializza ogni utente con un livello di batteria di 0.005
     Battery_f = np.empty((iterations, number_of_users), dtype=float)  # To save state of all users in current frame
     Ch_f = np.empty((iterations, number_of_users), dtype=float)
     AC_user_f = np.empty((iterations, number_of_users), dtype=int)
     Rew_u_f = np.empty((iterations, number_of_users), dtype=float)
     G_Raw_f = np.empty((iterations, number_of_users), dtype=float)
     CH_raw_f = np.empty((iterations, number_of_users), dtype=float)
-
+    slot_aloc_it = np.zeros((iterations, np.size(users), number_of_slots), dtype=int)
     dist = np.random.uniform(dist_min, dist_max, size= number_of_users)
     q_tables = np.empty([number_of_users, k.size * x.size, a.size], dtype=float)
     for user in range(np.size(users)):
@@ -1494,7 +1710,7 @@ for t in range(1, test+1):
             CH_Dis [d] = get_channel(G_Raw[d])
             randx = np.random.random()
             randx = round(randx, 5)
-            if randx >= epsilon: #Random Action Selection
+            if randx <= epsilon: #Random Action Selection
                 explore += 1
                 bt_units = users[d].BT_units()
                 if bt_units > number_of_slots:
@@ -1570,7 +1786,15 @@ for t in range(1, test+1):
         #use free slots for energy harvesting
         for i in range(number_of_slots):
             if np.sum(slot_aloc_f[:, i]) == 0:
-                u = rd.randint(0, number_of_users - 1)
+
+                idle_slots [t-1, it_ind] += 1 #track idle slots each iteration
+                # Normalize AOI to form probabilities (avoid zero-sum issue)
+                if np.sum(AOI_af) == 0:
+                    prob_aoi = np.ones(number_of_users) / number_of_users  # uniform fallback
+                else:
+                    prob_aoi = AOI_af / np.sum(AOI_af)
+                u = np.random.choice(np.arange(number_of_users), p=prob_aoi)
+                #u = rd.randint(0, number_of_users - 1)
                 # for u in range(number_of_users):
                 #    if u == user_to_transmit:
                 pw_u = compute_energy_harvested(G_Raw[u], time_duration, p)
@@ -1597,6 +1821,7 @@ for t in range(1, test+1):
             #print(f"user {u} BT is {users[u].battery_level}")
             #print(f"user {u} REW is {Rew_U [u]}")
 
+        AOI_af = Af_aoi
         AOI_users [t*it_ind, :] = Af_aoi
         AOI_users_tests [t-1, it_ind, :] = Af_aoi
         if (it_ind + 1) % Batch_size == 0:
@@ -1624,6 +1849,7 @@ for t in range(1, test+1):
         Rew_u_f[it_ind, :] = Rew_U
         G_Raw_f[it_ind, :] = G_Raw
         CH_raw_f [it_ind, :] = abs(CH_Raw)
+        slot_aloc_it[it_ind, :, :] = slot_aloc_f
         # Update AOI using current frame AOI and add it into next frame AOI so that it can be used for next frame
         #Update Next State
 
@@ -1637,9 +1863,13 @@ for t in range(1, test+1):
     CH_mean [t-1, :] = np.mean(Ch_f, axis=1)
     Battery_mean [t-1, :] = np.mean(Battery_f, axis=1)
     Rew_u_mean [t-1, :] = np.mean(Rew_u_f, axis=1)
+    # mean over iterations and slots → gives 1 number per user
+    slot_aloc_test[t - 1, :] = np.mean(slot_aloc_it, axis=(0, 2))
+    #mean_slot = np.mean(slot_aloc_it[t], axis=0)  # shape: (users, slots_t)
+    #slot_aloc_test.append(mean_slot)
     G [t-1]= number_of_users / number_of_slots
-    number_of_slots -= d_slot
-    min_epsilon += 0.05
+    #number_of_slots -= d_slot
+    #min_epsilon += 0.05
     #number_of_users += 1
     print(f"Test {t} Finished")
 
@@ -1647,7 +1877,11 @@ for t in range(1, test+1):
 
 AOI_mean  = np.mean(AOI_users, axis=1)
 
-import matplotlib.pyplot as plt
+# Reshape to: (tests, frames, users)
+AOI_users_reshaped = AOI_users.reshape(test, iterations, number_of_users)
+
+# Take mean across tests → shape: (frames, users)
+AOI_avg_all = np.mean(AOI_users_reshaped, axis=0)
 
 xv = np.linspace(0, AOI_mean.shape[0] - 1, AOI_mean.shape[0])
 fig, ax = plt.subplots(1, 1)
@@ -1680,7 +1914,7 @@ for t in range(test):
 
     AOI_test_means.append(final_mean)
 
-    current_slots -= 2  # N -= 2 for next test
+    current_slots -= d_slot  # N -= 2 for next test
 
 
 # Convert to numpy arrays for plotting
@@ -1706,6 +1940,19 @@ for t in range(test):
    # plot_actions_vs_channel_contour(CH_mean[t, :], AC_user_Mean[t, :], Battery_mean[t, :], slots[t])
     #plot_reward_vs_actions_contour(AC_user_Mean [t, :], Rew_u_mean [t, :], CH_mean [t, :], slots[t])
     #slots -= d_slot
+
+fig1, ax = plt.subplots(1, 1)
+ax.plot(xv, AOI_avg_all[:,0], 'b-', lw=1, alpha=1, label=f'Average AoI S= {slots[0]}, U = {0}')  # AoI medio del sistema per ogni iterazione
+ax.plot(xv, AOI_avg_all[:,1], 'k-', lw=1, alpha=1, label=f'Average AoI S= {slots[0]}, U = {1}')  # AoI medio del sistema per ogni iterazione
+ax.plot(xv, AOI_avg_all[:,2], 'm-', lw=1, alpha=1, label=f'Average AoI S= {slots[0]}, U = {2}')  # AoI medio del sistema per ogni iterazione
+ax.set_title('AoI Evolvement vs Iterations')
+ax.set_ylabel('Users AoI')
+ax.set_xlabel('Frames')
+ax.legend()
+plt.tight_layout()
+#fig.show()
+ax.grid(True)
+plt.show()
 
 #plot_reward_vs_actions_contour_all_tests (AC_user_Mean, Rew_u_mean, CH_mean, slots)
 
@@ -1743,7 +1990,7 @@ for t in range(test):
 
 #plot_action_histograms_per_test(AC_user_tests, num_bins=10)
 
-plot_combined_action_histogram_all_users(AC_user_tests, num_bins=10)
+#plot_combined_action_histogram_all_users(AC_user_tests, num_bins=10)
 
 #for t in range(test):
 
@@ -1752,25 +1999,32 @@ plot_combined_action_histogram_all_users(AC_user_tests, num_bins=10)
   #  plot_contour_reward(CH_user_tests, BT_user_tests, REW_user_tests, t, smooth_span=50)
 
 
-plot_hexbin_all_tests(CH_user_tests, BT_user_tests, AC_user_tests, label="Action", title="Action Hexbin")
+#plot_hexbin_all_tests(CH_user_tests, BT_user_tests, AC_user_tests, label="Action", title="Action Hexbin")
 
-plot_hexbin_all_tests(CH_user_tests, BT_user_tests, REW_user_tests, label="Reward", title="Reward Hexbin")
+#plot_hexbin_all_tests(CH_user_tests, BT_user_tests, REW_user_tests, label="Reward", title="Reward Hexbin")
 
 
-plot_bar_grid_all_tests(
-    CH_user_tests, BT_user_tests, AC_user_tests,
-    label="Action", title="Action Bar Grid"
-)
+#plot_bar_grid_all_tests(
+ #   CH_user_tests, BT_user_tests, AC_user_tests,
+  #  label="Action", title="Action Bar Grid"
+#)
 
-plot_bar_grid_all_tests(
-    CH_user_tests, BT_user_tests, REW_user_tests,
-    label="Reward", title="Reward Bar Grid"
-)
+#plot_bar_grid_all_tests(
+ #   CH_user_tests, BT_user_tests, REW_user_tests,
+  #  label="Reward", title="Reward Bar Grid"
+#)
 
-plot_action_vs_battery(CH_user_tests, BT_user_tests, AC_user_tests)
-plot_reward_vs_action(AC_user_tests, REW_user_tests)
+#plot_action_vs_battery(CH_user_tests, BT_user_tests, AC_user_tests)
+#plot_reward_vs_action(AC_user_tests, REW_user_tests)
 plot_battery_evolution(BT_user_tests)
-plot_battery_delta_over_frames(BT_user_tests)
+#plot_battery_delta_over_frames(BT_user_tests)
+
+#plot_action_vs_battery_combined(CH_user_tests, BT_user_tests, AC_user_tests, smooth_span=50, num_bins=20)
+#plot_userwise_action_histograms(AC_user_tests, num_bins=10)
+plot_userwise_action_heatmaps(AC_user_tests)
+
+#plot_user_slot_activity_histograms(slot_aloc_test)
+plot_idle_slot_trend(idle_slots)
 
 print (f"Explore: {explore}")
 print (f"Exploit: {exploit}")
