@@ -133,3 +133,23 @@ K_factor =  12
 decay_rate = 0.0001
 upsilon = 0.01 # One unit to transmit one replica
 d_slot = 10
+
+
+
+AOI_test_means = []
+G_values = []
+current_slots = number_of_slots
+for t in range(test):
+    start_idx = t * iterations
+    end_idx = (t + 1) * iterations
+
+    # Extract AOI block for this test
+    aoi_block = AOI_users[start_idx:end_idx, :]  # Shape: (iterations, number_of_users)
+
+    # Mean over users (axis=1), then mean over iterations (axis=0)
+    mean_per_iteration = np.mean(aoi_block, axis=1)  # Shape: (iterations,)
+    final_mean = np.mean(mean_per_iteration)         # Scalar
+
+    AOI_test_means.append(final_mean)
+
+    current_slots -= d_slot  # N -= 2 for next test

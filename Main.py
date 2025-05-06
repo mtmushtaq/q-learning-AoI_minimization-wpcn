@@ -28,12 +28,12 @@ from mpl_toolkits.mplot3d import Axes3D
 
 # This code with an optimized Learning rate= 0.5, But we need to find the value of Epsilon for good convergence
 # define training parameters
-discount_factor = 0.3  # 0.001
+discount_factor = 0.9  # 0.001
 test = 5
-learning_rate = 0.001
+learning_rate = 0.0001
 #define system parameters
 mu_bu= 0.05 # one unit of battery
-number_of_slots = 15
+number_of_slots = 12
 number_of_users = 3
 time_duration = 0.5
 p= 46
@@ -42,7 +42,7 @@ dist_max = 20
 s_AAOI = []
 Gain = []
 Th= 0.2
-iterations = 1000
+iterations = 50000
 Frame_size = []
 STD_AoI_u_AT = []
 STD_AoI_u_BT = []
@@ -1632,17 +1632,17 @@ def plot_idle_slot_trend(idle_slots):
 #learning_rate = 0.001
 # step_size_ep= (1-0.4)/iterations
 
-#users = []
-#for i in range(number_of_users):  # popola il vettore degli utenti
+users = []
+for i in range(number_of_users):  # popola il vettore degli utenti
     # users[i] = i + 1
- #   users.append(User(id=i, mu=upsilon, initial_battery_level=0.05))  # inizializza ogni utente con un livello di batteria di 0.005
+    users.append(User(id=i, mu=upsilon, initial_battery_level=0.05))  # inizializza ogni utente con un livello di batteria di 0.005
 
-#q_tables = np.empty([number_of_users, k.size * x.size, a.size], dtype=float)
-#for user in range(np.size(users)):
- #   q_tables[user, :, :] = np.random.rand(k.size * x.size, a.size)
+q_tables = np.empty([number_of_users, k.size * x.size, a.size], dtype=float)
+for user in range(np.size(users)):
+    q_tables[user, :, :] = np.random.rand(k.size * x.size, a.size)
 #print(f"first Q Table {q_tables}")
 
-AOI_users = np.empty((iterations*test, number_of_users), dtype=int)
+AOI_users = np.ones((iterations*test, number_of_users), dtype=int)
 AOI_users_tests = np.empty((test, iterations,number_of_users), dtype=int)
 #print(q_tables)
 # print(f"All State matrix {S}")
@@ -1667,11 +1667,10 @@ for t in range(1, test+1):
     reward = np.empty((number_of_users, iterations + 1), dtype=float)
     AOI = np.zeros((number_of_users, iterations + 1), dtype=int)
     AOI_af= np.ones(number_of_users, dtype=int)
-    users = []
-    for i in range(number_of_users):  # popola il vettore degli utenti
+    #users = []
+    #for i in range(number_of_users):  # popola il vettore degli utenti
         # users[i] = i + 1
-        users.append(User(id=i, mu=upsilon,
-                          initial_battery_level=0.05))  # inizializza ogni utente con un livello di batteria di 0.005
+     #   users.append(User(id=i, mu=upsilon,initial_battery_level=0.05))  # inizializza ogni utente con un livello di batteria di 0.005
     Battery_f = np.empty((iterations, number_of_users), dtype=float)  # To save state of all users in current frame
     Ch_f = np.empty((iterations, number_of_users), dtype=float)
     AC_user_f = np.empty((iterations, number_of_users), dtype=int)
@@ -1680,9 +1679,9 @@ for t in range(1, test+1):
     CH_raw_f = np.empty((iterations, number_of_users), dtype=float)
     slot_aloc_it = np.zeros((iterations, np.size(users), number_of_slots), dtype=int)
     dist = np.random.uniform(dist_min, dist_max, size= number_of_users)
-    q_tables = np.empty([number_of_users, k.size * x.size, a.size], dtype=float)
-    for user in range(np.size(users)):
-        q_tables[user, :, :] = np.random.rand(k.size * x.size, a.size)
+    #q_tables = np.empty([number_of_users, k.size * x.size, a.size], dtype=float)
+    #for user in range(np.size(users)):
+     #   q_tables[user, :, :] = np.random.rand(k.size * x.size, a.size)
     for it_ind in range(0, iterations):
         #print(f"Iteration: {it_ind}")
         epsilon = min_epsilon + (max_epsilon - min_epsilon) * np.exp(-decay_rate * it_ind)
@@ -1901,30 +1900,35 @@ plt.show()
 AOI_test_means = []
 G_values = []
 current_slots = number_of_slots
+
 for t in range(test):
     start_idx = t * iterations
     end_idx = (t + 1) * iterations
 
     # Extract AOI block for this test
-    aoi_block = AOI_users[start_idx:end_idx, :]  # Shape: (iterations, number_of_users)
+    aoi_block = AOI_users[start_idx:end_idx, :]  # Shape: (iterations, users)
 
-    # Mean over users (axis=1), then mean over iterations (axis=0)
-    mean_per_iteration = np.mean(aoi_block, axis=1)  # Shape: (iterations,)
-    final_mean = np.mean(mean_per_iteration)         # Scalar
+    # Mean over iterations first (axis=0) → per-user AAOI
+    user_means = np.mean(aoi_block, axis=0)  # Shape: (users,)
+
+    # Then mean over users → final system AAOI
+    final_mean = np.mean(user_means)  # Scalar
 
     AOI_test_means.append(final_mean)
 
-    current_slots -= d_slot  # N -= 2 for next test
-
+    G_values.append(number_of_users / current_slots)
+    current_slots -= d_slot
 
 # Convert to numpy arrays for plotting
 AOI_test_means = np.array(AOI_test_means)
 G_values = np.array(G_values)
 
 # Plot
+G_v = np.linspace(0, test -1 , test)
 plt.figure(figsize=(8, 6))
-plt.plot(G, AOI_test_means, marker='o')
-plt.xlabel(r"Normalized Channel Gain $G$")
+plt.plot(G_v, AOI_test_means, marker='o')
+#plt.xlabel(r"Normalized Channel Gain $G$")
+plt.xlabel(r"Training Episodes")
 plt.ylabel(r"Average AoI $\bar{A}$")
 plt.title("AoI")
 plt.grid(True)
@@ -1941,10 +1945,11 @@ for t in range(test):
     #plot_reward_vs_actions_contour(AC_user_Mean [t, :], Rew_u_mean [t, :], CH_mean [t, :], slots[t])
     #slots -= d_slot
 
+xf = np.linspace(0, iterations, iterations)
 fig1, ax = plt.subplots(1, 1)
-ax.plot(xv, AOI_avg_all[:,0], 'b-', lw=1, alpha=1, label=f'Average AoI S= {slots[0]}, U = {0}')  # AoI medio del sistema per ogni iterazione
-ax.plot(xv, AOI_avg_all[:,1], 'k-', lw=1, alpha=1, label=f'Average AoI S= {slots[0]}, U = {1}')  # AoI medio del sistema per ogni iterazione
-ax.plot(xv, AOI_avg_all[:,2], 'm-', lw=1, alpha=1, label=f'Average AoI S= {slots[0]}, U = {2}')  # AoI medio del sistema per ogni iterazione
+ax.plot(xf, AOI_avg_all[:,0], 'b-', lw=1, alpha=1, label=f'Average AoI S= {slots[0]}, U = {0}')  # AoI medio del sistema per ogni iterazione
+ax.plot(xf, AOI_avg_all[:,1], 'k*', lw=3, alpha=1, label=f'Average AoI S= {slots[0]}, U = {1}')  # AoI medio del sistema per ogni iterazione
+ax.plot(xf, AOI_avg_all[:,2], 'm-', lw=1, alpha=1, label=f'Average AoI S= {slots[0]}, U = {2}')  # AoI medio del sistema per ogni iterazione
 ax.set_title('AoI Evolvement vs Iterations')
 ax.set_ylabel('Users AoI')
 ax.set_xlabel('Frames')
