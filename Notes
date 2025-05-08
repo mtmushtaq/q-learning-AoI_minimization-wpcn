@@ -153,3 +153,56 @@ for t in range(test):
     AOI_test_means.append(final_mean)
 
     current_slots -= d_slot  # N -= 2 for next test
+
+
+AOI_test_means = []
+G_values = []
+current_slots = number_of_slots
+
+for t in range(test):
+    start_idx = t * iterations
+    end_idx = (t + 1) * iterations
+
+    # Extract AOI block for this test
+    aoi_block = AOI_users[start_idx:end_idx, :]  # Shape: (iterations, users)
+
+    # Mean over iterations first (axis=0) → per-user AAOI
+    user_means = np.mean(aoi_block, axis=0)  # Shape: (users,)
+
+    # Then mean over users → final system AAOI
+    final_mean = np.mean(user_means)  # Scalar
+
+    AOI_test_means.append(final_mean)
+
+    G_values.append(number_of_users / current_slots)
+    current_slots -= d_slot
+
+
+
+
+discount_factor = 0.9  # 0.001
+test = 5
+learning_rate = 0.0001
+#define system parameters
+mu_bu= 0.05 # one unit of battery
+number_of_slots = 12
+number_of_users = 3
+time_duration = 0.03
+p= 4.6
+dist_min = 1
+dist_max = 30
+s_AAOI = []
+Gain = []
+Th= 0.2
+iterations = 50000
+Frame_size = []
+STD_AoI_u_AT = []
+STD_AoI_u_BT = []
+Batch_size = 100
+it_ind = 0
+explore = 0
+exploit = 0
+K_factor =  15
+decay_rate = 0.0005
+upsilon = 0.015 # One unit to transmit one replica
+d_slot = 8

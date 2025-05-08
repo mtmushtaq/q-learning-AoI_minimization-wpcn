@@ -28,17 +28,17 @@ from mpl_toolkits.mplot3d import Axes3D
 
 # This code with an optimized Learning rate= 0.5, But we need to find the value of Epsilon for good convergence
 # define training parameters
-discount_factor = 0.9  # 0.001
+discount_factor = 0.99  # 0.001
 test = 5
 learning_rate = 0.0001
 #define system parameters
 mu_bu= 0.05 # one unit of battery
-number_of_slots = 12
-number_of_users = 3
-time_duration = 0.5
-p= 46
+number_of_slots = 100
+number_of_users = 25
+time_duration = 0.03
+p= 4.6
 dist_min = 1
-dist_max = 20
+dist_max = 30
 s_AAOI = []
 Gain = []
 Th= 0.2
@@ -46,13 +46,13 @@ iterations = 50000
 Frame_size = []
 STD_AoI_u_AT = []
 STD_AoI_u_BT = []
-Batch_size = 1
+Batch_size = 100
 it_ind = 0
 explore = 0
 exploit = 0
 K_factor =  15
 decay_rate = 0.0005
-upsilon = 0.001 # One unit to transmit one replica
+upsilon = 0.012 # One unit to transmit one replica
 d_slot = 8
 #u = np.empty(number_of_users, dtype=object)  # define users array
 #for i in range(number_of_users):
@@ -1663,7 +1663,7 @@ idle_slots = np.zeros((test, iterations), dtype=int)
 #slot_aloc_test = []  # List of (users × slots) matrices
 for t in range(1, test+1):
     min_epsilon = 0.1
-    max_epsilon = 0.9
+    max_epsilon = 0.6
     reward = np.empty((number_of_users, iterations + 1), dtype=float)
     AOI = np.zeros((number_of_users, iterations + 1), dtype=int)
     AOI_af= np.ones(number_of_users, dtype=int)
@@ -1709,7 +1709,7 @@ for t in range(1, test+1):
             CH_Dis [d] = get_channel(G_Raw[d])
             randx = np.random.random()
             randx = round(randx, 5)
-            if randx <= epsilon: #Random Action Selection
+            if randx >= epsilon: #Random Action Selection
                 explore += 1
                 bt_units = users[d].BT_units()
                 if bt_units > number_of_slots:
@@ -1898,40 +1898,64 @@ ax.grid(True)
 plt.show()
 
 AOI_test_means = []
-G_values = []
-current_slots = number_of_slots
+AOI_test_stds = []
+#G_values = []
+#current_slots = number_of_slots
 
 for t in range(test):
     start_idx = t * iterations
     end_idx = (t + 1) * iterations
 
-    # Extract AOI block for this test
-    aoi_block = AOI_users[start_idx:end_idx, :]  # Shape: (iterations, users)
+    # Extract AOI block for this test (frames × users)
+    aoi_block = AOI_users[start_idx:end_idx, :]
 
-    # Mean over iterations first (axis=0) → per-user AAOI
+    # Mean over iterations → per-user AAOI
     user_means = np.mean(aoi_block, axis=0)  # Shape: (users,)
 
-    # Then mean over users → final system AAOI
-    final_mean = np.mean(user_means)  # Scalar
+    # Store mean and std dev across users
+    AOI_test_means.append(np.mean(user_means))
+    AOI_test_stds.append(np.std(user_means))
 
-    AOI_test_means.append(final_mean)
+    #G_values.append(number_of_users / current_slots)
+    #current_slots -= d_slot
 
-    G_values.append(number_of_users / current_slots)
-    current_slots -= d_slot
-
-# Convert to numpy arrays for plotting
+# Convert to numpy arrays
 AOI_test_means = np.array(AOI_test_means)
-G_values = np.array(G_values)
+AOI_test_stds = np.array(AOI_test_stds)
+G_v = np.linspace(0, test - 1, test)
 
-# Plot
-G_v = np.linspace(0, test -1 , test)
+# Plot with error bars
 plt.figure(figsize=(8, 6))
-plt.plot(G_v, AOI_test_means, marker='o')
-#plt.xlabel(r"Normalized Channel Gain $G$")
+plt.errorbar(G_v, AOI_test_means, yerr=AOI_test_stds, fmt='-o', capsize=5, label='Avg AOI ± StdDev')
+
 plt.xlabel(r"Training Episodes")
 plt.ylabel(r"Average AoI $\bar{A}$")
-plt.title("AoI")
+plt.title("AoI convergence over different training episodes")
 plt.grid(True)
+plt.tight_layout()
+plt.legend()
+plt.show()
+
+
+# Re-import necessary libraries after kernel reset
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Create the fancy plot
+plt.figure(figsize=(10, 6))
+
+# Plot mean AOI with error bars
+plt.plot(G_v, AOI_test_means, 'o-', color='forestgreen', linewidth=2.5, label=r"$\bar{A}$")
+
+# Fill between for std deviation with alpha shading
+plt.fill_between(G_v, AOI_test_means - AOI_test_stds, AOI_test_means + AOI_test_stds, color='chocolate', alpha=0.4,label='Std Deviation')
+# Fancy decorations
+plt.xlabel(r"Training Episodes", fontsize=12)
+plt.ylabel(r"Average AoI $\bar{A}$", fontsize=12)
+plt.title(r"$\bar{A}$ convergence over different training episodes", fontsize=14, weight='bold')
+plt.grid(True, linestyle='--', alpha=0.6)
+plt.xticks(G_v)
+plt.legend()
 plt.tight_layout()
 plt.show()
 
@@ -2004,20 +2028,14 @@ plt.show()
   #  plot_contour_reward(CH_user_tests, BT_user_tests, REW_user_tests, t, smooth_span=50)
 
 
-#plot_hexbin_all_tests(CH_user_tests, BT_user_tests, AC_user_tests, label="Action", title="Action Hexbin")
+plot_hexbin_all_tests(CH_user_tests, BT_user_tests, AC_user_tests, label="Action", title="Action Hexbin")
 
-#plot_hexbin_all_tests(CH_user_tests, BT_user_tests, REW_user_tests, label="Reward", title="Reward Hexbin")
+plot_hexbin_all_tests(CH_user_tests, BT_user_tests, REW_user_tests, label="Reward", title="Reward Hexbin")
 
 
-#plot_bar_grid_all_tests(
- #   CH_user_tests, BT_user_tests, AC_user_tests,
-  #  label="Action", title="Action Bar Grid"
-#)
+plot_bar_grid_all_tests(CH_user_tests, BT_user_tests, AC_user_tests, label="Action", title="Action Bar Grid")
 
-#plot_bar_grid_all_tests(
- #   CH_user_tests, BT_user_tests, REW_user_tests,
-  #  label="Reward", title="Reward Bar Grid"
-#)
+plot_bar_grid_all_tests(CH_user_tests, BT_user_tests, REW_user_tests, label="Reward", title="Reward Bar Grid")
 
 #plot_action_vs_battery(CH_user_tests, BT_user_tests, AC_user_tests)
 #plot_reward_vs_action(AC_user_tests, REW_user_tests)
