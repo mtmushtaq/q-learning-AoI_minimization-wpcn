@@ -7,7 +7,9 @@ alpha0 = 0.826
 alpha1 = 0.399
 #time_duration = 0.5
 
+
 def generate_rician_fading(K_r):
+
     LOS_component = np.sqrt(K_r / (1 + K_r))  # Line-of-sight component
     scattered_component = np.sqrt(1 / (1 + K_r))   # Scattered component
     h = LOS_component + scattered_component * (np.random.normal(0, 1) + 1j * np.random.normal(0, 1))  # Total channel gain
@@ -26,16 +28,16 @@ def compute_energy_harvested(g_eh, time_duration, p):  # EQ 5
 
 def get_channel(ce):  # valuta un dato valore ce (channel evaluation) e ritorna il corrispondente grado del canale (ch) basato su un range predefinito
     #print(f"channel evaluation: {ce}:")
-    if ce < 0.025:
+    if ce < 0.0025:
         ch = 0  # grado del canale
         return ch
-    elif ce >= 0.025 and ce < 0.05:
+    elif ce >= 0.0025 and ce < 0.009:
         ch = 1
         return ch
-    elif ce >= 0.05 and ce < 0.09:
+    elif ce >= 0.009 and ce < 0.05:
         ch = 2
         return ch
-    elif ce >= 0.09 and ce < 0.1:
+    elif ce >= 0.05 and ce < 0.1:
         ch = 3
         return ch
     elif ce >= 0.1 and ce < 0.2:

@@ -29,12 +29,12 @@ from mpl_toolkits.mplot3d import Axes3D
 # This code with an optimized Learning rate= 0.5, But we need to find the value of Epsilon for good convergence
 # define training parameters
 discount_factor = 0.99  # 0.001
-test = 5
+test = 1
 learning_rate = 0.0001
 #define system parameters
 mu_bu= 0.05 # one unit of battery
-number_of_slots = 100
-number_of_users = 25
+number_of_slots = 10
+number_of_users = 3
 time_duration = 0.03
 p= 4.6
 dist_min = 1
@@ -48,10 +48,12 @@ STD_AoI_u_AT = []
 STD_AoI_u_BT = []
 Batch_size = 100
 it_ind = 0
+explore_count = []
+exploit_count = []
 explore = 0
 exploit = 0
-K_factor =  15
-decay_rate = 0.0005
+K_factor =  5
+decay_rate = 0.00015
 upsilon = 0.012 # One unit to transmit one replica
 d_slot = 8
 #u = np.empty(number_of_users, dtype=object)  # define users array
@@ -1623,6 +1625,44 @@ def plot_idle_slot_trend(idle_slots):
     plt.tight_layout()
     plt.show()
 
+def plot_channel_gain_histograms(G_user_test, user_indices, bins=50, bin_range=None):
+    """
+    Plot normalized histograms (PDFs) of channel gain for selected users across all tests and frames.
+
+    Parameters:
+    - G_user_test: np.ndarray of shape (tests, iterations, users)
+    - user_indices: int or list of user indices to plot.
+                    If int, plots that many users starting from index 0.
+    - bins: number of histogram bins (int or sequence of bin edges)
+    - bin_range: tuple (min, max) to set range of bins. Default is None (auto range).
+    """
+    tests, iterations, total_users = G_user_test.shape
+
+    # Convert int to list of indices if needed
+    if isinstance(user_indices, int):
+        user_indices = list(range(min(user_indices, total_users)))
+    elif isinstance(user_indices, list):
+        user_indices = [u for u in user_indices if 0 <= u < total_users]  # Ensure valid indices
+
+    num_to_plot = len(user_indices)
+    fig, axs = plt.subplots(nrows=num_to_plot, figsize=(8, 3 * num_to_plot), constrained_layout=True)
+
+    # Ensure axs is iterable
+    if num_to_plot == 1:
+        axs = [axs]
+
+    for i, u in enumerate(user_indices):
+        user_data = G_user_test[:, :, u].flatten()
+        axs[i].hist(user_data, bins=bins, range=bin_range, density=True,
+                    alpha=0.75, color='skyblue', edgecolor='black')
+        axs[i].set_title(f"Channel Gain PDF - User {u}")
+        axs[i].set_xlabel("Channel Gain (Normalized)")
+        axs[i].set_ylabel("Probability Density")
+        axs[i].grid(True)
+
+    fig.suptitle("Normalized Channel Gain Histograms for Selected Users", fontsize=16)
+    plt.show()
+
 
 ## Command to randomly pick values----->>>>> np.random.randint(0, 7, size=(k.size * x.size, a.size), dtype=int)
 #reward = np.empty((number_of_users, iterations+1), dtype=float)
@@ -1660,10 +1700,11 @@ G_user_tests = np.empty((test, iterations, number_of_users), dtype=float)
 Ch_Raw_tests = np.empty((test, iterations, number_of_users), dtype=float)
 slot_aloc_test = np.zeros ((test, number_of_users), dtype=float)
 idle_slots = np.zeros((test, iterations), dtype=int)
+epsilon_t = np.zeros((test, iterations), dtype=float)
 #slot_aloc_test = []  # List of (users × slots) matrices
 for t in range(1, test+1):
-    min_epsilon = 0.1
-    max_epsilon = 0.6
+    min_epsilon = 0.05
+    max_epsilon = 0.9
     reward = np.empty((number_of_users, iterations + 1), dtype=float)
     AOI = np.zeros((number_of_users, iterations + 1), dtype=int)
     AOI_af= np.ones(number_of_users, dtype=int)
@@ -1686,6 +1727,7 @@ for t in range(1, test+1):
         #print(f"Iteration: {it_ind}")
         epsilon = min_epsilon + (max_epsilon - min_epsilon) * np.exp(-decay_rate * it_ind)
         epsilon = round(epsilon, 5)
+        epsilon_t[t-1, it_ind] = epsilon
         slot_aloc_f = np.zeros ((np.size(users), number_of_slots), dtype=int)
         S = np.empty((number_of_users, 1, 2), dtype=float)  # To save state of all users in current frame
         EH_Raw = np.empty(number_of_users, dtype=float)  # to save raw battery capacity of all users at current iteration/frame
@@ -1709,8 +1751,9 @@ for t in range(1, test+1):
             CH_Dis [d] = get_channel(G_Raw[d])
             randx = np.random.random()
             randx = round(randx, 5)
-            if randx >= epsilon: #Random Action Selection
+            if randx <= epsilon: #Random Action Selection
                 explore += 1
+
                 bt_units = users[d].BT_units()
                 if bt_units > number_of_slots:
                     bt_units = number_of_slots
@@ -1813,7 +1856,7 @@ for t in range(1, test+1):
             if Tx_slot == -1 or Recovery == -1:
                 users[u].AOI = Bf_aoi [u] + number_of_slots
             else:
-                users[u].AOI = Recovery - Tx_slot + 1
+                users[u].AOI = Recovery - Tx_slot + 1 + (number_of_slots - Recovery)
             Af_aoi[u] = users[u].AOI
             Rew_U [u] = get_rew (Bf_aoi [u], Af_aoi[u] , BT_Dis[u] , AC_users[u], CH_Dis[u])
             #print(f"user {u} AOI is {users[u].AOI}")
@@ -1849,6 +1892,8 @@ for t in range(1, test+1):
         G_Raw_f[it_ind, :] = G_Raw
         CH_raw_f [it_ind, :] = abs(CH_Raw)
         slot_aloc_it[it_ind, :, :] = slot_aloc_f
+        explore_count.append(explore)
+        exploit_count.append(exploit)
         # Update AOI using current frame AOI and add it into next frame AOI so that it can be used for next frame
         #Update Next State
 
@@ -1928,6 +1973,32 @@ G_v = np.linspace(0, test - 1, test)
 plt.figure(figsize=(8, 6))
 plt.errorbar(G_v, AOI_test_means, yerr=AOI_test_stds, fmt='-o', capsize=5, label='Avg AOI ± StdDev')
 
+plot_channel_gain_histograms(G_user_tests, user_indices=2, bins=10, bin_range=(0, 0.5))
+
+xf = np.linspace(0, iterations, iterations)
+fig2, ax = plt.subplots(1, 1)
+ax.plot(xf, epsilon_t[0,:], 'b-', lw=1, alpha=1, label=f'Epsilon')  # AoI medio del sistema per ogni iterazione
+ax.set_title('Epsilon vs Frames')
+ax.set_ylabel('Epsilon')
+ax.set_xlabel('Frames')
+ax.legend()
+plt.tight_layout()
+#fig.show()
+ax.grid(True)
+plt.show()
+
+plt.figure(figsize=(10, 5))
+plt.plot(explore_count, label="Exploration", color='red', linewidth=2)
+plt.plot(exploit_count, label="Exploitation", color='blue', linewidth=2)
+
+plt.xlabel("Frame")
+plt.ylabel("Cumulative Count")
+plt.title("Exploration vs Exploitation Over Time")
+plt.legend()
+plt.grid(True, linestyle='--', alpha=0.6)
+plt.tight_layout()
+plt.show()
+
 plt.xlabel(r"Training Episodes")
 plt.ylabel(r"Average AoI $\bar{A}$")
 plt.title("AoI convergence over different training episodes")
@@ -1936,12 +2007,6 @@ plt.tight_layout()
 plt.legend()
 plt.show()
 
-
-# Re-import necessary libraries after kernel reset
-import matplotlib.pyplot as plt
-import numpy as np
-
-# Create the fancy plot
 plt.figure(figsize=(10, 6))
 
 # Plot mean AOI with error bars
@@ -1971,9 +2036,9 @@ for t in range(test):
 
 xf = np.linspace(0, iterations, iterations)
 fig1, ax = plt.subplots(1, 1)
-ax.plot(xf, AOI_avg_all[:,0], 'b-', lw=1, alpha=1, label=f'Average AoI S= {slots[0]}, U = {0}')  # AoI medio del sistema per ogni iterazione
+ax.plot(xf, AOI_avg_all[:,0], 'o', lw=1, alpha=1, label=f'Average AoI S= {slots[0]}, U = {0}')  # AoI medio del sistema per ogni iterazione
 ax.plot(xf, AOI_avg_all[:,1], 'k*', lw=3, alpha=1, label=f'Average AoI S= {slots[0]}, U = {1}')  # AoI medio del sistema per ogni iterazione
-ax.plot(xf, AOI_avg_all[:,2], 'm-', lw=1, alpha=1, label=f'Average AoI S= {slots[0]}, U = {2}')  # AoI medio del sistema per ogni iterazione
+ax.plot(xf, AOI_avg_all[:,2], '+', lw=1, alpha=1, label=f'Average AoI S= {slots[0]}, U = {2}')  # AoI medio del sistema per ogni iterazione
 ax.set_title('AoI Evolvement vs Iterations')
 ax.set_ylabel('Users AoI')
 ax.set_xlabel('Frames')
@@ -2028,14 +2093,14 @@ plt.show()
   #  plot_contour_reward(CH_user_tests, BT_user_tests, REW_user_tests, t, smooth_span=50)
 
 
-plot_hexbin_all_tests(CH_user_tests, BT_user_tests, AC_user_tests, label="Action", title="Action Hexbin")
+#plot_hexbin_all_tests(CH_user_tests, BT_user_tests, AC_user_tests, label="Action", title="Action Hexbin")
 
-plot_hexbin_all_tests(CH_user_tests, BT_user_tests, REW_user_tests, label="Reward", title="Reward Hexbin")
+#plot_hexbin_all_tests(CH_user_tests, BT_user_tests, REW_user_tests, label="Reward", title="Reward Hexbin")
 
 
-plot_bar_grid_all_tests(CH_user_tests, BT_user_tests, AC_user_tests, label="Action", title="Action Bar Grid")
+#plot_bar_grid_all_tests(CH_user_tests, BT_user_tests, AC_user_tests, label="Action", title="Action Bar Grid")
 
-plot_bar_grid_all_tests(CH_user_tests, BT_user_tests, REW_user_tests, label="Reward", title="Reward Bar Grid")
+#plot_bar_grid_all_tests(CH_user_tests, BT_user_tests, REW_user_tests, label="Reward", title="Reward Bar Grid")
 
 #plot_action_vs_battery(CH_user_tests, BT_user_tests, AC_user_tests)
 #plot_reward_vs_action(AC_user_tests, REW_user_tests)
