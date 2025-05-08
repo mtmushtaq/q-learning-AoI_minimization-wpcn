@@ -29,20 +29,20 @@ from mpl_toolkits.mplot3d import Axes3D
 # This code with an optimized Learning rate= 0.5, But we need to find the value of Epsilon for good convergence
 # define training parameters
 discount_factor = 0.99  # 0.001
-test = 1
-learning_rate = 0.0001
+test = 100
+learning_rate = 0.001
 #define system parameters
 mu_bu= 0.05 # one unit of battery
 number_of_slots = 10
-number_of_users = 3
+number_of_users = 5
 time_duration = 0.03
 p= 4.6
 dist_min = 1
-dist_max = 30
+dist_max = 7
 s_AAOI = []
 Gain = []
 Th= 0.2
-iterations = 50000
+iterations = 10000
 Frame_size = []
 STD_AoI_u_AT = []
 STD_AoI_u_BT = []
@@ -52,9 +52,9 @@ explore_count = []
 exploit_count = []
 explore = 0
 exploit = 0
-K_factor =  5
-decay_rate = 0.00015
-upsilon = 0.012 # One unit to transmit one replica
+K_factor =  10
+decay_rate = 0.0005
+upsilon = 0.025 # One unit to transmit one replica
 d_slot = 8
 #u = np.empty(number_of_users, dtype=object)  # define users array
 #for i in range(number_of_users):
@@ -1703,7 +1703,7 @@ idle_slots = np.zeros((test, iterations), dtype=int)
 epsilon_t = np.zeros((test, iterations), dtype=float)
 #slot_aloc_test = []  # List of (users × slots) matrices
 for t in range(1, test+1):
-    min_epsilon = 0.05
+    min_epsilon = 0.3
     max_epsilon = 0.9
     reward = np.empty((number_of_users, iterations + 1), dtype=float)
     AOI = np.zeros((number_of_users, iterations + 1), dtype=int)
@@ -1973,7 +1973,7 @@ G_v = np.linspace(0, test - 1, test)
 plt.figure(figsize=(8, 6))
 plt.errorbar(G_v, AOI_test_means, yerr=AOI_test_stds, fmt='-o', capsize=5, label='Avg AOI ± StdDev')
 
-plot_channel_gain_histograms(G_user_tests, user_indices=2, bins=10, bin_range=(0, 0.5))
+plot_channel_gain_histograms(G_user_tests, user_indices=2, bins=10, bin_range=(0, 5))
 
 xf = np.linspace(0, iterations, iterations)
 fig2, ax = plt.subplots(1, 1)
