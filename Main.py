@@ -33,8 +33,8 @@ test = 100
 learning_rate = 0.001
 #define system parameters
 mu_bu= 0.05 # one unit of battery
-number_of_slots = 10
-number_of_users = 5
+number_of_slots = 20
+number_of_users = 10
 time_duration = 0.03
 p= 4.6
 dist_min = 1
@@ -1663,6 +1663,41 @@ def plot_channel_gain_histograms(G_user_test, user_indices, bins=50, bin_range=N
     fig.suptitle("Normalized Channel Gain Histograms for Selected Users", fontsize=16)
     plt.show()
 
+def plot_avg_battery_evolution(BT_user_tests, user_indices):
+    """
+    Plot average battery evolution over tests for selected users.
+
+    Parameters:
+    - BT_user_tests: np.ndarray of shape (tests, iterations, users)
+    - user_indices: int or list of user indices to plot.
+                    If int, plots that many users starting from index 0.
+    """
+    tests, iterations, total_users = BT_user_tests.shape
+
+    # Normalize user_indices input
+    if isinstance(user_indices, int):
+        user_indices = list(range(min(user_indices, total_users)))
+    elif isinstance(user_indices, list):
+        user_indices = [u for u in user_indices if 0 <= u < total_users]
+
+    num_to_plot = len(user_indices)
+    fig, axs = plt.subplots(nrows=num_to_plot, figsize=(10, 3 * num_to_plot), constrained_layout=True)
+
+    if num_to_plot == 1:
+        axs = [axs]
+
+    for i, u in enumerate(user_indices):
+        # Shape: (tests, iterations) → mean over axis=0 (tests)
+        avg_battery = BT_user_tests[:, :, u].mean(axis=0)
+        axs[i].plot(avg_battery, label=f'User {u}', color='green')
+        axs[i].set_title(f"Average Battery Evolution - User {u}")
+        axs[i].set_xlabel("Iterations")
+        axs[i].set_ylabel("Battery Level")
+        axs[i].grid(True)
+        axs[i].legend()
+
+    fig.suptitle("Average Battery Evolution per User (Averaged Over Tests)", fontsize=16)
+    plt.show()
 
 ## Command to randomly pick values----->>>>> np.random.randint(0, 7, size=(k.size * x.size, a.size), dtype=int)
 #reward = np.empty((number_of_users, iterations+1), dtype=float)
@@ -1915,7 +1950,10 @@ for t in range(1, test+1):
     #number_of_slots -= d_slot
     #min_epsilon += 0.05
     #number_of_users += 1
+    dist_max += 0.5
+    learning_rate -= 0.000005
     print(f"Test {t} Finished")
+    print(f"Updated Learning Rate: {learning_rate}")
 
 #print(f"Last Q Table {q_tables}")
 
@@ -1970,10 +2008,10 @@ AOI_test_stds = np.array(AOI_test_stds)
 G_v = np.linspace(0, test - 1, test)
 
 # Plot with error bars
-plt.figure(figsize=(8, 6))
-plt.errorbar(G_v, AOI_test_means, yerr=AOI_test_stds, fmt='-o', capsize=5, label='Avg AOI ± StdDev')
+#plt.figure(figsize=(8, 6))
+#plt.errorbar(G_v, AOI_test_means, yerr=AOI_test_stds, fmt='-o', capsize=5, label='Avg AOI ± StdDev')
 
-plot_channel_gain_histograms(G_user_tests, user_indices=2, bins=10, bin_range=(0, 5))
+#plot_channel_gain_histograms(G_user_tests, user_indices=2, bins=10, bin_range=(0, 5))
 
 xf = np.linspace(0, iterations, iterations)
 fig2, ax = plt.subplots(1, 1)
@@ -2105,6 +2143,8 @@ plt.show()
 #plot_action_vs_battery(CH_user_tests, BT_user_tests, AC_user_tests)
 #plot_reward_vs_action(AC_user_tests, REW_user_tests)
 plot_battery_evolution(BT_user_tests)
+
+plot_avg_battery_evolution(BT_user_tests, [0, 3, 5])
 #plot_battery_delta_over_frames(BT_user_tests)
 
 #plot_action_vs_battery_combined(CH_user_tests, BT_user_tests, AC_user_tests, smooth_span=50, num_bins=20)
