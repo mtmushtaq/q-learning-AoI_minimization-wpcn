@@ -206,3 +206,27 @@ K_factor =  15
 decay_rate = 0.0005
 upsilon = 0.015 # One unit to transmit one replica
 d_slot = 8
+
+
+
+def plot_user_slot_activity_histograms(slot_aloc_test):
+    """
+    Plot user activity (avg slot usage) as histograms per test.
+    slot_aloc_test: shape [tests, users]
+    """
+    num_tests, num_users = slot_aloc_test.shape
+    fig, axs = plt.subplots(1, num_tests, figsize=(5 * num_tests, 4), constrained_layout=True)
+
+    if num_tests == 1:
+        axs = [axs]
+
+    for t in range(num_tests):
+        axs[t].bar(range(num_users), slot_aloc_test[t], color='mediumorchid', edgecolor='black')
+        axs[t].set_title(f"Test {t}")
+        axs[t].set_xlabel("User")
+        axs[t].set_ylabel("Mean Slot Usage")
+        axs[t].set_xticks(range(num_users))
+        axs[t].grid(True, axis='y')
+
+    fig.suptitle("Mean Slot Selection Activity per User Across Tests", fontsize=16)
+    plt.show()

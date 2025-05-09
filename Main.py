@@ -1571,28 +1571,6 @@ def plot_userwise_action_heatmaps(AC_user_tests, num_actions=6):
     fig.suptitle("User-wise Action Distribution Heatmaps (Action x Test)", fontsize=18)
     plt.show()
 
-def plot_user_slot_activity_histograms(slot_aloc_test):
-    """
-    Plot user activity (avg slot usage) as histograms per test.
-    slot_aloc_test: shape [tests, users]
-    """
-    num_tests, num_users = slot_aloc_test.shape
-    fig, axs = plt.subplots(1, num_tests, figsize=(5 * num_tests, 4), constrained_layout=True)
-
-    if num_tests == 1:
-        axs = [axs]
-
-    for t in range(num_tests):
-        axs[t].bar(range(num_users), slot_aloc_test[t], color='mediumorchid', edgecolor='black')
-        axs[t].set_title(f"Test {t}")
-        axs[t].set_xlabel("User")
-        axs[t].set_ylabel("Mean Slot Usage")
-        axs[t].set_xticks(range(num_users))
-        axs[t].grid(True, axis='y')
-
-    fig.suptitle("Mean Slot Selection Activity per User Across Tests", fontsize=16)
-    plt.show()
-
 def plot_idle_slot_trend(idle_slots):
     """
     Plot average and per-iteration idle slots for each test.
@@ -1699,6 +1677,87 @@ def plot_avg_battery_evolution(BT_user_tests, user_indices):
     fig.suptitle("Average Battery Evolution per User (Averaged Over Tests)", fontsize=16)
     plt.show()
 
+def plot_userwise_avg_action_heatmaps(AC_user_tests, num_actions=6):
+    """
+    Plot a heatmap per user showing average action distribution after averaging over tests.
+
+    Steps:
+    - AC_user_tests: shape (tests, iterations, users)
+    - Average over tests → (iterations, users)
+    - Compute histogram of actions per user from averaged data
+    - Plot as 1-column heatmap (actions × 1 column)
+    """
+    num_tests, num_frames, num_users = AC_user_tests.shape
+    num_cols = 5
+    num_rows = int(np.ceil(num_users / num_cols))
+
+    # Step 1: Average over tests -> shape (iterations, users)
+    avg_actions_per_user = np.mean(AC_user_tests, axis=0)  # (iterations, users)
+
+    fig, axs = plt.subplots(num_rows, num_cols, figsize=(4 * num_cols, 3.5 * num_rows), constrained_layout=True)
+    axs = axs.flatten()
+
+    for u in range(num_users):
+        actions = avg_actions_per_user[:, u]
+        # Round to nearest int if values are floats due to averaging
+        actions_rounded = np.round(actions).astype(int)
+        actions_rounded = np.clip(actions_rounded, 0, num_actions - 1)  # Ensure valid action range
+
+        hist, _ = np.histogram(actions_rounded, bins=np.arange(num_actions + 1))
+        prob = hist / np.sum(hist) if np.sum(hist) > 0 else np.zeros_like(hist)
+        heat_data = prob.reshape((num_actions, 1))
+
+        sns.heatmap(heat_data, ax=axs[u], cmap="YlGnBu", cbar=False, annot=True, fmt=".2f",
+                    xticklabels=["Avg"],
+                    yticklabels=[f"A{i}" for i in range(num_actions)])
+        axs[u].set_title(f"User {u}")
+
+    for i in range(num_users, len(axs)):
+        fig.delaxes(axs[i])
+
+    fig.suptitle("User-wise Action Distribution After Averaging Over Tests", fontsize=18)
+    plt.show()
+
+def plot_user_slot_activity_histograms(slot_aloc_it):
+    """
+    Plot histogram per user showing the probability of selecting each slot
+    across all tests and iterations.
+
+    Parameters:
+    - slot_aloc_it: np.ndarray of shape (tests, iterations, users, slots)
+    """
+    num_tests, num_iterations, num_users, num_slots = slot_aloc_it.shape
+    num_cols = 5
+    num_rows = int(np.ceil(num_users / num_cols))
+
+    fig, axs = plt.subplots(num_rows, num_cols, figsize=(4 * num_cols, 3 * num_rows), constrained_layout=True)
+    axs = axs.flatten()
+
+    for u in range(num_users):
+        # Flatten over tests and iterations → shape (num_tests * num_iterations, num_slots)
+        user_slot_data = slot_aloc_it[:, :, u, :].reshape(-1, num_slots)
+
+        # Count how many times each slot was selected (assuming binary or count data)
+        slot_selection_counts = user_slot_data.sum(axis=0)  # shape = (num_slots,)
+        total_selections = slot_selection_counts.sum()
+
+        # Normalize to get probabilities
+        slot_probs = slot_selection_counts / total_selections if total_selections > 0 else np.zeros_like(slot_selection_counts)
+
+        axs[u].bar(np.arange(num_slots), slot_probs, color='orange', edgecolor='black')
+        axs[u].set_title(f"User {u} - Slot Selection Probability")
+        axs[u].set_xlabel("Slot Index")
+        axs[u].set_ylabel("Probability")
+        axs[u].set_ylim(0, 1)
+        axs[u].grid(True)
+
+    for i in range(num_users, len(axs)):
+        fig.delaxes(axs[i])
+
+    fig.suptitle("User-wise Slot Selection Histograms", fontsize=18)
+    plt.show()
+
+
 ## Command to randomly pick values----->>>>> np.random.randint(0, 7, size=(k.size * x.size, a.size), dtype=int)
 #reward = np.empty((number_of_users, iterations+1), dtype=float)
 #AOI = np.zeros((number_of_users, iterations+1), dtype=int)
@@ -1736,6 +1795,7 @@ Ch_Raw_tests = np.empty((test, iterations, number_of_users), dtype=float)
 slot_aloc_test = np.zeros ((test, number_of_users), dtype=float)
 idle_slots = np.zeros((test, iterations), dtype=int)
 epsilon_t = np.zeros((test, iterations), dtype=float)
+slot_aloc_it = np.zeros((test, iterations, np.size(users), number_of_slots), dtype=int)
 #slot_aloc_test = []  # List of (users × slots) matrices
 for t in range(1, test+1):
     min_epsilon = 0.3
@@ -1753,7 +1813,6 @@ for t in range(1, test+1):
     Rew_u_f = np.empty((iterations, number_of_users), dtype=float)
     G_Raw_f = np.empty((iterations, number_of_users), dtype=float)
     CH_raw_f = np.empty((iterations, number_of_users), dtype=float)
-    slot_aloc_it = np.zeros((iterations, np.size(users), number_of_slots), dtype=int)
     dist = np.random.uniform(dist_min, dist_max, size= number_of_users)
     #q_tables = np.empty([number_of_users, k.size * x.size, a.size], dtype=float)
     #for user in range(np.size(users)):
@@ -1926,7 +1985,7 @@ for t in range(1, test+1):
         Rew_u_f[it_ind, :] = Rew_U
         G_Raw_f[it_ind, :] = G_Raw
         CH_raw_f [it_ind, :] = abs(CH_Raw)
-        slot_aloc_it[it_ind, :, :] = slot_aloc_f
+        slot_aloc_it[t-1, it_ind, :, :] = slot_aloc_f
         explore_count.append(explore)
         exploit_count.append(exploit)
         # Update AOI using current frame AOI and add it into next frame AOI so that it can be used for next frame
@@ -1943,17 +2002,17 @@ for t in range(1, test+1):
     Battery_mean [t-1, :] = np.mean(Battery_f, axis=1)
     Rew_u_mean [t-1, :] = np.mean(Rew_u_f, axis=1)
     # mean over iterations and slots → gives 1 number per user
-    slot_aloc_test[t - 1, :] = np.mean(slot_aloc_it, axis=(0, 2))
+    #slot_aloc_test[t - 1, :] = np.mean(slot_aloc_it, axis=(0, 2))
     #mean_slot = np.mean(slot_aloc_it[t], axis=0)  # shape: (users, slots_t)
     #slot_aloc_test.append(mean_slot)
     G [t-1]= number_of_users / number_of_slots
     #number_of_slots -= d_slot
     #min_epsilon += 0.05
     #number_of_users += 1
-    dist_max += 0.5
-    learning_rate -= 0.000005
+    #dist_max += 0.5
+    #learning_rate -= 0.000005
     print(f"Test {t} Finished")
-    print(f"Updated Learning Rate: {learning_rate}")
+    #print(f"Updated Learning Rate: {learning_rate}")
 
 #print(f"Last Q Table {q_tables}")
 
@@ -1967,7 +2026,7 @@ AOI_avg_all = np.mean(AOI_users_reshaped, axis=0)
 
 xv = np.linspace(0, AOI_mean.shape[0] - 1, AOI_mean.shape[0])
 fig, ax = plt.subplots(1, 1)
-ax.plot(xv, pd.Series(AOI_mean).ewm(span=100).mean(), 'b-', lw=1, alpha=1, label=f'Average AoI S= {number_of_slots}, U = {number_of_users}')  # AoI medio del sistema per ogni iterazione
+ax.plot(xv, pd.Series(AOI_mean).ewm(span=2).mean(), 'b-', lw=1, alpha=1, label=f'Average AoI S= {number_of_slots}, U = {number_of_users}')  # AoI medio del sistema per ogni iterazione
 #ax.plot(xv, np.mean(AAOI_all[1, :, :], axis=0), 'k--', lw=1, alpha=1, label=f'Average AoI S= {n_slot-14}, U = {number_of_users}')  # AoI medio del sistema per ogni iterazione
 #ax.plot(xv, np.mean(AAOI_all[4, :, :], axis=0), 'm*', lw=1, alpha=1, label=f'Average AoI S= {n_slot-28}, U = {number_of_users}')  # AoI medio del sistema per ogni iterazione
 # ax.plot(xv, xv, AAOI_all [1, :], 'r--', lw=2, alpha=0.6, label ='AoI per Iteration S= 10, U-2') # AAoI cumulativo normalizzato, calcolato dividendo summ_AAoI per il numero di iterazioni considerate fino a quel punto
@@ -2149,9 +2208,8 @@ plot_avg_battery_evolution(BT_user_tests, [0, 3, 5])
 
 #plot_action_vs_battery_combined(CH_user_tests, BT_user_tests, AC_user_tests, smooth_span=50, num_bins=20)
 #plot_userwise_action_histograms(AC_user_tests, num_bins=10)
-plot_userwise_action_heatmaps(AC_user_tests)
-
-#plot_user_slot_activity_histograms(slot_aloc_test)
+plot_userwise_avg_action_heatmaps(AC_user_tests, num_actions=6)
+plot_user_slot_activity_histograms(slot_aloc_it)
 plot_idle_slot_trend(idle_slots)
 
 print (f"Explore: {explore}")
