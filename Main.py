@@ -29,13 +29,13 @@ from mpl_toolkits.mplot3d import Axes3D
 # This code with an optimized Learning rate= 0.5, But we need to find the value of Epsilon for good convergence
 # define training parameters
 discount_factor = 0.99  # 0.001
-test = 100
-learning_rate = 0.001
+test = 500
+learning_rate = 0.003
 #define system parameters
 mu_bu= 0.05 # one unit of battery
-number_of_slots = 20
-number_of_users = 10
-time_duration = 0.03
+number_of_slots = 10
+number_of_users = 6
+time_duration = 0.02
 p= 4.6
 dist_min = 1
 dist_max = 7
@@ -52,8 +52,8 @@ explore_count = []
 exploit_count = []
 explore = 0
 exploit = 0
-K_factor =  10
-decay_rate = 0.0005
+K_factor =  15
+decay_rate = 0.001
 upsilon = 0.025 # One unit to transmit one replica
 d_slot = 8
 #u = np.empty(number_of_users, dtype=object)  # define users array
@@ -256,20 +256,20 @@ def get_distr(pw):
         distr = np.array([1])
         return distr
     elif pw == 2:
-        #distr = np.array([0.75, 0.25])
-        distr = np.array([0.5, 0.5])
+        distr = np.array([0.75, 0.25])
+        #distr = np.array([0.5, 0.5])
         return distr
     elif pw == 3:
-        #distr = np.array([0.7, 0.2, 0.1])
-        distr = np.array([0.34, 0.33, 0.33])
+        distr = np.array([0.7, 0.2, 0.1])
+        #distr = np.array([0.34, 0.33, 0.33])
         return distr
     elif pw == 4:
-        #distr = np.array([0.625, 0.2083, 0.1042, 0.0625])
-        distr = np.array([0.25, 0.25, 0.25, 0.25])
+        distr = np.array([0.625, 0.2083, 0.1042, 0.0625])
+        #distr = np.array([0.25, 0.25, 0.25, 0.25])
         return distr
     elif pw == 5:
-        #distr = np.array([0.6, 0.2, 0.1, 0.06, 0.04])
-        distr = np.array([0.2, 0.2, 0.2, 0.2, 0.2])
+        distr = np.array([0.6, 0.2, 0.1, 0.06, 0.04])
+        #distr = np.array([0.2, 0.2, 0.2, 0.2, 0.2])
         return distr
     return distr
 
@@ -1281,7 +1281,7 @@ def plot_bar_grid_all_tests(CH_user_tests, BT_user_tests, VAL_user_tests, label=
 
     for t in range(num_tests):
         ch = pd.DataFrame(CH_user_tests[t]).ewm(span=smooth_span, axis=0).mean().to_numpy().flatten()
-        bt = pd.DataFrame(BT_user_tests[t]).ewm(span=smooth_span, axis=0).mean().to_numpy().flatten()
+        bt = pd.DataFrame(BT_user_tests[t]).ewm(span=smooth_span).mean().to_numpy().flatten()
         val = pd.DataFrame(VAL_user_tests[t]).ewm(span=smooth_span, axis=0).mean().to_numpy().flatten()
 
         # Compute binned average
@@ -1757,6 +1757,160 @@ def plot_user_slot_activity_histograms(slot_aloc_it):
     fig.suptitle("User-wise Slot Selection Histograms", fontsize=18)
     plt.show()
 
+def plot_aoi_block_avg(AOI_mean, number_of_slots, number_of_users, block_size=1000):
+    """
+    Plot AoI evolution using block-wise averaging to reduce noise.
+
+    Parameters:
+    - AOI_mean: 1D array of average AoI per iteration (length = total iterations)
+    - number_of_slots: int, number of slots in the system (for label)
+    - number_of_users: int, number of users in the system (for label)
+    - block_size: int, number of iterations per block to average
+    """
+    # Ensure AOI_mean is divisible by block_size
+    trimmed_length = (len(AOI_mean) // block_size) * block_size
+    trimmed_aoi = AOI_mean[:trimmed_length]
+
+    # Reshape and compute block-wise average
+    reduced = trimmed_aoi.reshape(-1, block_size).mean(axis=1)
+    xv_reduced = np.arange(len(reduced)) * block_size
+
+    # Plot
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.plot(xv_reduced, reduced, 'b-', lw=1.5,
+            label=f'Avg AoI (S={number_of_slots}, U={number_of_users})')
+
+    ax.set_title('AoI Evolvement vs Iterations (Block-Averaged)', fontsize=14)
+    ax.set_xlabel('Iterations')
+    ax.set_ylabel('Average AoI')
+    ax.grid(True)
+    ax.legend()
+    plt.tight_layout()
+    plt.show()
+
+def plot_testwise_action_evolution(AC_user_tests, smoothing_window=3):
+    """
+    Plot average action per test for each user, with a smoothing line.
+
+    Parameters:
+    - AC_user_tests: np.ndarray of shape (tests, iterations, users)
+    - smoothing_window: int, window size for moving average smoothing
+    """
+    num_tests, num_iterations, num_users = AC_user_tests.shape
+
+    # Average over iterations → shape (tests, users)
+    avg_actions = AC_user_tests.mean(axis=1)
+
+    # Plot per user
+    num_cols = 5
+    num_rows = int(np.ceil(num_users / num_cols))
+
+    fig, axs = plt.subplots(num_rows, num_cols, figsize=(4 * num_cols, 3 * num_rows), constrained_layout=True)
+    axs = axs.flatten()
+
+    for u in range(num_users):
+        raw = avg_actions[:, u]
+        smoothed = pd.Series(raw).rolling(window=smoothing_window, min_periods=1, center=True).mean()
+
+        axs[u].plot(raw, marker='o', linestyle='-', color='lightgray', label='Raw')
+        axs[u].plot(smoothed, color='blue', linewidth=2, label=f'SMA (w={smoothing_window})')
+        axs[u].set_title(f"User {u}")
+        axs[u].set_xlabel("Test Index")
+        axs[u].set_ylabel("Avg Action")
+        axs[u].grid(True)
+        axs[u].legend()
+
+    # Remove unused subplots
+    for i in range(num_users, len(axs)):
+        fig.delaxes(axs[i])
+
+    fig.suptitle("User-wise Smoothed Action Evolution Across Tests", fontsize=16)
+    plt.show()
+
+
+def plot_aoi_convergence_simple(G_v, AOI_means, AOI_stds, label=r"$\bar{A}$"):
+    plt.figure(figsize=(10, 6))
+    plt.plot(G_v, AOI_means, 'o-', color='forestgreen', linewidth=2.5, label=label)
+    plt.fill_between(G_v, AOI_means - AOI_stds, AOI_means + AOI_stds,
+                     color='chocolate', alpha=0.4, label='Std Deviation')
+
+    plt.xlabel(r"Training Episodes", fontsize=12)
+    plt.ylabel(r"Average AoI $\bar{A}$", fontsize=12)
+    plt.title(r"$\bar{A}$ convergence over different training episodes", fontsize=14, weight='bold')
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.xticks(G_v[::20])
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+def plot_testwise_reward_evolution(REW_user_tests, smoothing_window=3):
+    """
+    Plot average reward per test for each user, with a smoothing line.
+
+    Parameters:
+    - REW_user_tests: np.ndarray of shape (tests, iterations, users)
+    - smoothing_window: int, window size for moving average smoothing
+    """
+    num_tests, num_iterations, num_users = REW_user_tests.shape
+    avg_rewards = REW_user_tests.mean(axis=1)
+
+    num_cols = 5
+    num_rows = int(np.ceil(num_users / num_cols))
+    fig, axs = plt.subplots(num_rows, num_cols, figsize=(4 * num_cols, 3 * num_rows), constrained_layout=True)
+    axs = axs.flatten()
+
+    for u in range(num_users):
+        raw = avg_rewards[:, u]
+        smoothed = pd.Series(raw).rolling(window=smoothing_window, min_periods=1, center=True).mean()
+
+        axs[u].plot(raw, marker='o', linestyle='-', color='lightgray', label='Raw')
+        axs[u].plot(smoothed, color='green', linewidth=2, label=f'SMA (w={smoothing_window})')
+        axs[u].set_title(f"User {u}")
+        axs[u].set_xlabel("Test Index")
+        axs[u].set_ylabel("Avg Reward")
+        axs[u].grid(True)
+        axs[u].legend()
+
+    for i in range(num_users, len(axs)):
+        fig.delaxes(axs[i])
+
+    fig.suptitle("User-wise Smoothed Reward Evolution Across Tests", fontsize=16)
+    plt.show()
+
+
+def plot_testwise_battery_evolution(BT_user_tests, smoothing_window=3):
+    """
+    Plot average battery per test for each user, with a smoothing line.
+
+    Parameters:
+    - BT_user_tests: np.ndarray of shape (tests, iterations, users)
+    - smoothing_window: int, window size for moving average smoothing
+    """
+    num_tests, num_iterations, num_users = BT_user_tests.shape
+    avg_battery = BT_user_tests.mean(axis=1)
+
+    num_cols = 5
+    num_rows = int(np.ceil(num_users / num_cols))
+    fig, axs = plt.subplots(num_rows, num_cols, figsize=(4 * num_cols, 3 * num_rows), constrained_layout=True)
+    axs = axs.flatten()
+
+    for u in range(num_users):
+        raw = avg_battery[:, u]
+        smoothed = pd.Series(raw).rolling(window=smoothing_window, min_periods=1, center=True).mean()
+
+        axs[u].plot(raw, marker='o', linestyle='-', color='lightgray', label='Raw')
+        axs[u].plot(smoothed, color='orange', linewidth=2, label=f'SMA (w={smoothing_window})')
+        axs[u].set_title(f"User {u}")
+        axs[u].set_xlabel("Test Index")
+        axs[u].set_ylabel("Avg Battery")
+        axs[u].grid(True)
+        axs[u].legend()
+
+    for i in range(num_users, len(axs)):
+        fig.delaxes(axs[i])
+
+    fig.suptitle("User-wise Smoothed Battery Evolution Across Tests", fontsize=16)
+    plt.show()
 
 ## Command to randomly pick values----->>>>> np.random.randint(0, 7, size=(k.size * x.size, a.size), dtype=int)
 #reward = np.empty((number_of_users, iterations+1), dtype=float)
@@ -2010,9 +2164,10 @@ for t in range(1, test+1):
     #min_epsilon += 0.05
     #number_of_users += 1
     #dist_max += 0.5
-    #learning_rate -= 0.000005
+    learning_rate -= 0.000005
+    learning_rate = round(learning_rate, 6)
     print(f"Test {t} Finished")
-    #print(f"Updated Learning Rate: {learning_rate}")
+    print(f"Updated Learning Rate: {learning_rate}")
 
 #print(f"Last Q Table {q_tables}")
 
@@ -2039,6 +2194,8 @@ plt.tight_layout()
 ax.grid(True)
 plt.show()
 
+plot_aoi_block_avg(AOI_mean, number_of_slots, number_of_users, block_size=100)
+
 AOI_test_means = []
 AOI_test_stds = []
 #G_values = []
@@ -2052,11 +2209,12 @@ for t in range(test):
     aoi_block = AOI_users[start_idx:end_idx, :]
 
     # Mean over iterations → per-user AAOI
-    user_means = np.mean(aoi_block, axis=0)  # Shape: (users,)
+    it_aoi_means = np.mean(aoi_block, axis=1)
+    #user_means = np.mean(aoi_block, axis=0)  # Shape: (users,)
 
     # Store mean and std dev across users
-    AOI_test_means.append(np.mean(user_means))
-    AOI_test_stds.append(np.std(user_means))
+    AOI_test_means.append(np.mean(it_aoi_means))
+    AOI_test_stds.append(np.std(it_aoi_means))
 
     #G_values.append(number_of_users / current_slots)
     #current_slots -= d_slot
@@ -2065,6 +2223,8 @@ for t in range(test):
 AOI_test_means = np.array(AOI_test_means)
 AOI_test_stds = np.array(AOI_test_stds)
 G_v = np.linspace(0, test - 1, test)
+
+plot_aoi_convergence_simple(G_v, AOI_test_means , AOI_test_stds, label=r"$\bar{A}$")
 
 # Plot with error bars
 #plt.figure(figsize=(8, 6))
@@ -2096,30 +2256,6 @@ plt.grid(True, linestyle='--', alpha=0.6)
 plt.tight_layout()
 plt.show()
 
-plt.xlabel(r"Training Episodes")
-plt.ylabel(r"Average AoI $\bar{A}$")
-plt.title("AoI convergence over different training episodes")
-plt.grid(True)
-plt.tight_layout()
-plt.legend()
-plt.show()
-
-plt.figure(figsize=(10, 6))
-
-# Plot mean AOI with error bars
-plt.plot(G_v, AOI_test_means, 'o-', color='forestgreen', linewidth=2.5, label=r"$\bar{A}$")
-
-# Fill between for std deviation with alpha shading
-plt.fill_between(G_v, AOI_test_means - AOI_test_stds, AOI_test_means + AOI_test_stds, color='chocolate', alpha=0.4,label='Std Deviation')
-# Fancy decorations
-plt.xlabel(r"Training Episodes", fontsize=12)
-plt.ylabel(r"Average AoI $\bar{A}$", fontsize=12)
-plt.title(r"$\bar{A}$ convergence over different training episodes", fontsize=14, weight='bold')
-plt.grid(True, linestyle='--', alpha=0.6)
-plt.xticks(G_v)
-plt.legend()
-plt.tight_layout()
-plt.show()
 
 slots = []
 for t in range(test):
@@ -2208,9 +2344,15 @@ plot_avg_battery_evolution(BT_user_tests, [0, 3, 5])
 
 #plot_action_vs_battery_combined(CH_user_tests, BT_user_tests, AC_user_tests, smooth_span=50, num_bins=20)
 #plot_userwise_action_histograms(AC_user_tests, num_bins=10)
-plot_userwise_avg_action_heatmaps(AC_user_tests, num_actions=6)
-plot_user_slot_activity_histograms(slot_aloc_it)
-plot_idle_slot_trend(idle_slots)
+#plot_userwise_avg_action_heatmaps(AC_user_tests, num_actions=6)
+#plot_user_slot_activity_histograms(slot_aloc_it)
+#plot_idle_slot_trend(idle_slots)
+
+plot_testwise_action_evolution(AC_user_tests, smoothing_window=3)
+
+plot_testwise_reward_evolution(REW_user_tests, smoothing_window=3)
+
+plot_testwise_battery_evolution(BT_user_tests, smoothing_window=3)
 
 print (f"Explore: {explore}")
 print (f"Exploit: {exploit}")
