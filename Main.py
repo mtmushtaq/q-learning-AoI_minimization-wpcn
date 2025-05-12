@@ -29,13 +29,13 @@ from mpl_toolkits.mplot3d import Axes3D
 # This code with an optimized Learning rate= 0.5, But we need to find the value of Epsilon for good convergence
 # define training parameters
 discount_factor = 0.99  # 0.001
-test = 500
-learning_rate = 0.003
+test = 750
+learning_rate = 0.0001
 #define system parameters
 mu_bu= 0.05 # one unit of battery
-number_of_slots = 10
-number_of_users = 6
-time_duration = 0.02
+number_of_slots = 2
+number_of_users = 3
+time_duration = 0.015
 p= 4.6
 dist_min = 1
 dist_max = 7
@@ -53,7 +53,7 @@ exploit_count = []
 explore = 0
 exploit = 0
 K_factor =  15
-decay_rate = 0.001
+decay_rate = 0.0005
 upsilon = 0.025 # One unit to transmit one replica
 d_slot = 8
 #u = np.empty(number_of_users, dtype=object)  # define users array
@@ -241,10 +241,11 @@ def get_rew(B_AOI, A_AOI, BT, act, ch, max_AOI=100, max_BT=5, w1=0.9, w2=0.3, w3
     ch_norm = ch / 7.0
     BT_norm = BT / 5
     reward = 0
+    #np.clip(D_AOI, 0, number_of_slots)
     if act == BT and ch >= 4:
-        reward = w1 * np.clip(D_AOI, 0, number_of_slots) + w2 * (act_norm / (ch_norm + 0.1)) + w3 * BT_norm
+        reward = w1 * D_AOI_norm + w2 * (act_norm / (ch_norm + 0.1)) + w3 * BT_norm
     else:
-        reward = w1 * np.clip(D_AOI, 0, number_of_slots) + w2 * (2 * act_norm) + w3 * BT_norm
+        reward = w1 * D_AOI_norm + w2 * (2 * act_norm) + w3 * BT_norm
     return reward
 
 
@@ -2163,11 +2164,15 @@ for t in range(1, test+1):
     #number_of_slots -= d_slot
     #min_epsilon += 0.05
     #number_of_users += 1
-    #dist_max += 0.5
-    learning_rate -= 0.000005
-    learning_rate = round(learning_rate, 6)
+    #dist_max += 0.03
+    #K_factor -= 0.01
+    #learning_rate -= 0.000005
+    #learning_rate = round(learning_rate, 6)
+    #K_factor = round(K_factor, 2)
+    #dist_max = round(dist_max, 2)
     print(f"Test {t} Finished")
-    print(f"Updated Learning Rate: {learning_rate}")
+    #print(f"Updated Learning Rate: {learning_rate}")
+    #print(f"Updated K factor: {K_factor}")
 
 #print(f"Last Q Table {q_tables}")
 
