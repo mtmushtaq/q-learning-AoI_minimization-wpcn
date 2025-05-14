@@ -12,6 +12,8 @@ from State_User import * #generate_rician_fading, gamma_EH, compute_energy_harve
 from Discritize_state import get_dis_BT, get_dis_AT, CH_dist
 from SIC import *
 from User import User
+from Data_IO import *
+import os
 import matplotlib.patches as patches
 from scipy.stats import binned_statistic_2d
 #import pandas as pd
@@ -29,13 +31,13 @@ from mpl_toolkits.mplot3d import Axes3D
 # This code with an optimized Learning rate= 0.5, But we need to find the value of Epsilon for good convergence
 # define training parameters
 discount_factor = 0.99  # 0.001
-test = 750
+test = 1000
 learning_rate = 0.0001
 #define system parameters
 mu_bu= 0.05 # one unit of battery
-number_of_slots = 2
-number_of_users = 3
-time_duration = 0.015
+number_of_slots = 12
+number_of_users = 9
+time_duration = 0.02
 p= 4.6
 dist_min = 1
 dist_max = 7
@@ -234,7 +236,7 @@ def get_row(pw, ch):
     #elif act < BT:
      #   rew = D_AOI + (2* act)
     #return rew
-def get_rew(B_AOI, A_AOI, BT, act, ch, max_AOI=100, max_BT=5, w1=0.9, w2=0.3, w3=0.3):
+def get_rew(B_AOI, A_AOI, BT, act, ch, max_AOI=100, max_BT=5, w1=0.4, w2=0.6, w3=0.6):
     D_AOI = B_AOI - A_AOI
     D_AOI_norm = D_AOI / number_of_slots
     act_norm = act / 5
@@ -243,9 +245,9 @@ def get_rew(B_AOI, A_AOI, BT, act, ch, max_AOI=100, max_BT=5, w1=0.9, w2=0.3, w3
     reward = 0
     #np.clip(D_AOI, 0, number_of_slots)
     if act == BT and ch >= 4:
-        reward = w1 * D_AOI_norm + w2 * (act_norm / (ch_norm + 0.1)) + w3 * BT_norm
+        reward = w1 * np.clip(D_AOI, 0, number_of_slots) + w2 * (act_norm / (ch_norm + 0.1)) + w3 * BT_norm
     else:
-        reward = w1 * D_AOI_norm + w2 * (2 * act_norm) + w3 * BT_norm
+        reward = w1 * np.clip(D_AOI, 0, number_of_slots) + w2 * (2 * act_norm) + w3 * BT_norm
     return reward
 
 
@@ -1913,6 +1915,104 @@ def plot_testwise_battery_evolution(BT_user_tests, smoothing_window=3):
     fig.suptitle("User-wise Smoothed Battery Evolution Across Tests", fontsize=16)
     plt.show()
 
+def plot_aoi_evolution(AOI_test_iter, smoothing_window=1000):
+    """
+    Plot average AoI evolution:
+    1. System-wide AoI (avg over users and tests)
+    2. Individual user AoI (avg over tests)
+
+    Parameters:
+    - AOI_test_iter: np.ndarray of shape (tests, iterations, users)
+    - smoothing_window: int, window size for smoothing AoI trends
+    """
+
+    num_tests, num_iterations, num_users = AOI_test_iter.shape
+
+    # --- Plot 1: System-Wide AoI ---
+    avg_over_tests = np.mean(AOI_test_iter, axis=0)          # (iterations, users)
+    overall_avg_aoi = np.mean(avg_over_tests, axis=1)        # (iterations,)
+
+    smoothed = pd.Series(overall_avg_aoi).rolling(window=smoothing_window, min_periods=1).mean()
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(overall_avg_aoi, color='lightgray', label='Raw Avg AoI')
+    plt.plot(smoothed, color='blue', linewidth=2, label=f'Smoothed (w={smoothing_window})')
+    plt.title("System-wide Average AoI Evolution")
+    plt.xlabel("Iterations")
+    plt.ylabel("Avg AoI (Users + Tests)")
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+    # --- Plot 2: Per-User AoI Evolution ---
+    plt.figure(figsize=(12, 6))
+    for u in range(num_users):
+        user_avg = avg_over_tests[:, u]  # (iterations,)
+        user_smoothed = pd.Series(user_avg).rolling(window=smoothing_window, min_periods=1).mean()
+        plt.plot(user_smoothed, label=f"User {u}")
+
+    plt.title("Per-User AoI Evolution (Averaged Over Tests)")
+    plt.xlabel("Iterations")
+    plt.ylabel("Avg AoI")
+    plt.grid(True)
+    plt.legend(ncol=4, fontsize='small')
+    plt.tight_layout()
+    plt.show()
+
+def plot_aoi_testwise(AOI_test, smoothing_window=3):
+    """
+    Plot AoI per test:
+    - Per-user evolution
+    - Overall average across users
+
+    Parameters:
+    - AOI_test: np.ndarray of shape (tests, users)
+    - smoothing_window: int, for SMA smoothing over tests
+    """
+    num_tests, num_users = AOI_test.shape
+
+    # Plot 1: Per-user AoI across tests
+    num_cols = 5
+    num_rows = int(np.ceil(num_users / num_cols))
+
+    fig, axs = plt.subplots(num_rows, num_cols, figsize=(4 * num_cols, 3 * num_rows), constrained_layout=True)
+    axs = axs.flatten()
+
+    for u in range(num_users):
+        raw = AOI_test[:, u]
+        smoothed = pd.Series(raw).rolling(window=smoothing_window, min_periods=1, center=True).mean()
+
+        axs[u].plot(raw, color='lightgray', label='Raw')
+        axs[u].plot(smoothed, color='blue', label=f'SMA (w={smoothing_window})')
+        axs[u].set_title(f"User {u}")
+        axs[u].set_xlabel("Test Index")
+        axs[u].set_ylabel("Avg AoI")
+        axs[u].legend()
+        axs[u].grid(True)
+
+    for i in range(num_users, len(axs)):
+        fig.delaxes(axs[i])
+
+    fig.suptitle("Per-User AoI Evolution Over Tests", fontsize=16)
+    plt.show()
+
+    # Plot 2: Overall average AoI over all users
+    avg_aoi_all_users = AOI_test.mean(axis=1)
+    smoothed_avg = pd.Series(avg_aoi_all_users).rolling(window=smoothing_window, min_periods=1, center=True).mean()
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(avg_aoi_all_users, color='gray', label='Raw Avg AoI')
+    plt.plot(smoothed_avg, color='darkgreen', linewidth=2, label='Smoothed Avg AoI')
+    plt.title("Overall Average AoI per Test (All Users)")
+    plt.xlabel("Test Index")
+    plt.ylabel("Avg AoI")
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+
 ## Command to randomly pick values----->>>>> np.random.randint(0, 7, size=(k.size * x.size, a.size), dtype=int)
 #reward = np.empty((number_of_users, iterations+1), dtype=float)
 #AOI = np.zeros((number_of_users, iterations+1), dtype=int)
@@ -1937,22 +2037,25 @@ AOI_users_tests = np.empty((test, iterations,number_of_users), dtype=int)
 # print(f"All State matrix {S}")
 G = np.empty(test, dtype = float)
 
-AC_user_Mean = np.empty((test, iterations), dtype=float)
-CH_mean = np.empty((test, iterations), dtype=float)
-Battery_mean = np.empty((test, iterations), dtype=float)
-Rew_u_mean =np.empty((test, iterations), dtype=float)
-AC_user_tests = np.empty((test, iterations, number_of_users), dtype=float)
-CH_user_tests = np.empty((test, iterations, number_of_users), dtype=float)
-BT_user_tests = np.empty((test, iterations, number_of_users), dtype=float)
-REW_user_tests = np.empty((test, iterations, number_of_users), dtype=float)
-G_user_tests = np.empty((test, iterations, number_of_users), dtype=float)
-Ch_Raw_tests = np.empty((test, iterations, number_of_users), dtype=float)
-slot_aloc_test = np.zeros ((test, number_of_users), dtype=float)
-idle_slots = np.zeros((test, iterations), dtype=int)
+
 epsilon_t = np.zeros((test, iterations), dtype=float)
-slot_aloc_it = np.zeros((test, iterations, np.size(users), number_of_slots), dtype=int)
+#AOI_test_iter = np.ones((test, iterations, number_of_users), dtype=float)
+AOI_test = np.ones((test, number_of_users), dtype=float)
 #slot_aloc_test = []  # List of (users × slots) matrices
 for t in range(1, test+1):
+    AC_user_Mean = np.empty((iterations), dtype=float)
+    CH_mean = np.empty((iterations), dtype=float)
+    Battery_mean = np.empty((iterations), dtype=float)
+    Rew_u_mean = np.empty((iterations), dtype=float)
+    AC_user_tests = np.empty((iterations, number_of_users), dtype=float)
+    CH_user_tests = np.empty((iterations, number_of_users), dtype=float)
+    BT_user_tests = np.empty((iterations, number_of_users), dtype=float)
+    REW_user_tests = np.empty((iterations, number_of_users), dtype=float)
+    G_user_tests = np.empty((iterations, number_of_users), dtype=float)
+    Ch_Raw_tests = np.empty((iterations, number_of_users), dtype=float)
+    slot_aloc_test = np.zeros((number_of_users), dtype=float)
+    idle_slots = np.zeros(iterations, dtype=int)
+    slot_aloc_it = np.zeros((iterations, np.size(users), number_of_slots), dtype=int)
     min_epsilon = 0.3
     max_epsilon = 0.9
     reward = np.empty((number_of_users, iterations + 1), dtype=float)
@@ -1969,6 +2072,8 @@ for t in range(1, test+1):
     G_Raw_f = np.empty((iterations, number_of_users), dtype=float)
     CH_raw_f = np.empty((iterations, number_of_users), dtype=float)
     dist = np.random.uniform(dist_min, dist_max, size= number_of_users)
+    AOI_cumsum = np.zeros((number_of_users,), dtype=float)
+    AOI_test_iter = np.zeros((iterations, number_of_users), dtype=float)
     #q_tables = np.empty([number_of_users, k.size * x.size, a.size], dtype=float)
     #for user in range(np.size(users)):
      #   q_tables[user, :, :] = np.random.rand(k.size * x.size, a.size)
@@ -2078,7 +2183,7 @@ for t in range(1, test+1):
         for i in range(number_of_slots):
             if np.sum(slot_aloc_f[:, i]) == 0:
 
-                idle_slots [t-1, it_ind] += 1 #track idle slots each iteration
+                idle_slots [it_ind] += 1 #track idle slots each iteration
                 # Normalize AOI to form probabilities (avoid zero-sum issue)
                 if np.sum(AOI_af) == 0:
                     prob_aoi = np.ones(number_of_users) / number_of_users  # uniform fallback
@@ -2115,6 +2220,11 @@ for t in range(1, test+1):
         AOI_af = Af_aoi
         AOI_users [t*it_ind, :] = Af_aoi
         AOI_users_tests [t-1, it_ind, :] = Af_aoi
+        #AOI_test_iter [t-1, it_ind, :] = Af_aoi
+        if it_ind > 0:
+            AOI_cumsum += Af_aoi  # assuming Af_aoi is the AoI at this iteration
+            AOI_test_iter[it_ind, :] = AOI_cumsum / (it_ind + 1)
+            #AOI_test_iter [t-1, it_ind, :] = (AOI_test_iter [t-1, it_ind-1, :] + AOI_test_iter [t-1, it_ind, :])/it_ind
         if (it_ind + 1) % Batch_size == 0:
             # Get new State and update Q-Table
             dist = np.random.uniform(dist_min, dist_max, size=number_of_users)
@@ -2140,22 +2250,39 @@ for t in range(1, test+1):
         Rew_u_f[it_ind, :] = Rew_U
         G_Raw_f[it_ind, :] = G_Raw
         CH_raw_f [it_ind, :] = abs(CH_Raw)
-        slot_aloc_it[t-1, it_ind, :, :] = slot_aloc_f
+        slot_aloc_it[it_ind, :, :] = slot_aloc_f
         explore_count.append(explore)
         exploit_count.append(exploit)
         # Update AOI using current frame AOI and add it into next frame AOI so that it can be used for next frame
         #Update Next State
+    # Save per-test AoI_iter to disk
+    df = pd.DataFrame(AOI_test_iter)
+    df.to_csv(f"AOI_test_iter_t{t}.csv", index=False)
+    del AOI_test_iter
+    AC_user_tests [ :, :] = AC_user_f
+    CH_user_tests [ :, :] = Ch_f
+    BT_user_tests [ :, :] = Battery_f
+    REW_user_tests [:, :] = Rew_u_f
+    G_user_tests[ :, :] = G_Raw_f
+    Ch_Raw_tests[ :, :] = CH_raw_f
+    AC_user_Mean [ :] = np.mean(AC_user_f, axis=1)
+    CH_mean [:] = np.mean(Ch_f, axis=1)
+    Battery_mean [:] = np.mean(Battery_f, axis=1)
+    Rew_u_mean [:] = np.mean(Rew_u_f, axis=1)
 
-    AC_user_tests [t-1, :, :] = AC_user_f
-    CH_user_tests [t-1, :, :] = Ch_f
-    BT_user_tests [t-1, :, :] = Battery_f
-    REW_user_tests [t-1, :, :] = Rew_u_f
-    G_user_tests[t-1, :, :] = G_Raw_f
-    Ch_Raw_tests[t-1, :, :] = CH_raw_f
-    AC_user_Mean [t-1, :] = np.mean(AC_user_f, axis=1)
-    CH_mean [t-1, :] = np.mean(Ch_f, axis=1)
-    Battery_mean [t-1, :] = np.mean(Battery_f, axis=1)
-    Rew_u_mean [t-1, :] = np.mean(Rew_u_f, axis=1)
+    save_per_test_matrix(G_user_tests, "G_user_tests", t-1, output_dir="data")
+    save_per_test_matrix(AC_user_tests, "AC_user_tests", t-1, output_dir="data")
+    save_per_test_matrix(CH_user_tests, "CH_user_tests", t-1, output_dir="data")
+    save_per_test_matrix(BT_user_tests, "BT_user_tests", t-1, output_dir="data")
+    save_per_test_matrix(REW_user_tests, "REW_user_tests", t-1, output_dir="data")
+    save_per_test_matrix(Ch_Raw_tests, "Ch_Raw_tests", t-1, output_dir="data")
+
+    save_per_test_vector(AC_user_Mean, "AC_user_Mean", t-1, output_dir="data")
+    save_per_test_vector(CH_mean, "CH_mean", t-1, output_dir="data")
+    save_per_test_vector(Battery_mean, "Battery_mean", t-1, output_dir="data")
+    save_per_test_vector(Rew_u_mean, "Rew_u_mean", t-1, output_dir="data")
+
+    #AOI_test [t-1, :] = np.mean(AOI_test_iter[t-1, :, :], axis=0)
     # mean over iterations and slots → gives 1 number per user
     #slot_aloc_test[t - 1, :] = np.mean(slot_aloc_it, axis=(0, 2))
     #mean_slot = np.mean(slot_aloc_it[t], axis=0)  # shape: (users, slots_t)
@@ -2165,16 +2292,46 @@ for t in range(1, test+1):
     #min_epsilon += 0.05
     #number_of_users += 1
     #dist_max += 0.03
-    #K_factor -= 0.01
+    K_factor -= 0.005
     #learning_rate -= 0.000005
     #learning_rate = round(learning_rate, 6)
-    #K_factor = round(K_factor, 2)
+    K_factor = round(K_factor, 2)
     #dist_max = round(dist_max, 2)
     print(f"Test {t} Finished")
     #print(f"Updated Learning Rate: {learning_rate}")
-    #print(f"Updated K factor: {K_factor}")
+    print(f"Updated K factor: {K_factor}")
 
 #print(f"Last Q Table {q_tables}")
+
+output_dir = "data"
+
+AC_user_tests = load_matrix_tests("AC_user_tests", test, input_dir=output_dir)
+CH_user_tests = load_matrix_tests("CH_user_tests", test, input_dir=output_dir)
+BT_user_tests = load_matrix_tests("BT_user_tests", test, input_dir=output_dir)
+REW_user_tests = load_matrix_tests("REW_user_tests", test, input_dir=output_dir)
+G_user_tests = load_matrix_tests("G_user_tests", test, input_dir=output_dir)
+Ch_Raw_tests = load_matrix_tests("Ch_Raw_tests", test, input_dir=output_dir)
+
+# Precomputed mean vectors from earlier save
+AC_user_Mean = load_vector_tests("AC_user_Mean", test, input_dir=output_dir)
+CH_mean = load_vector_tests("CH_mean", test, input_dir=output_dir)
+Battery_mean = load_vector_tests("Battery_mean", test, input_dir=output_dir)
+Rew_u_mean = load_vector_tests("Rew_u_mean", test, input_dir=output_dir)
+
+# If you want to compute the mean over iterations → (tests, users)
+AC_user_avg_test = np.mean(AC_user_tests, axis=1)
+CH_user_avg_test = np.mean(CH_user_tests, axis=1)
+BT_user_avg_test = np.mean(BT_user_tests, axis=1)
+REW_user_avg_test = np.mean(REW_user_tests, axis=1)
+G_user_avg_test = np.mean(G_user_tests, axis=1)
+Ch_Raw_avg_test = np.mean(Ch_Raw_tests, axis=1)
+
+AOI_test = np.zeros((test, number_of_users))
+
+for t in range(test):
+    df = pd.read_csv(f"AOI_test_iter_t{t+1}.csv")
+    AOI_test[t, :] = df.mean(axis=0)  # Average over iterations
+
 
 AOI_mean  = np.mean(AOI_users, axis=1)
 
@@ -2358,6 +2515,10 @@ plot_testwise_action_evolution(AC_user_tests, smoothing_window=3)
 plot_testwise_reward_evolution(REW_user_tests, smoothing_window=3)
 
 plot_testwise_battery_evolution(BT_user_tests, smoothing_window=3)
+
+#plot_aoi_evolution(AOI_test_iter, smoothing_window=1000)
+
+plot_aoi_testwise(AOI_test, smoothing_window=30)
 
 print (f"Explore: {explore}")
 print (f"Exploit: {exploit}")
