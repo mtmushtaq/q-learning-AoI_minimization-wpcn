@@ -22,7 +22,6 @@ import scipy.interpolate
 
 from scipy.interpolate import griddata
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 import seaborn as sns
 from mpl_toolkits.mplot3d import Axes3D
@@ -31,7 +30,7 @@ from mpl_toolkits.mplot3d import Axes3D
 # This code with an optimized Learning rate= 0.5, But we need to find the value of Epsilon for good convergence
 # define training parameters
 discount_factor = 0.99  # 0.001
-test = 1000
+test = 100
 learning_rate = 0.0001
 #define system parameters
 mu_bu= 0.05 # one unit of battery
@@ -2041,18 +2040,30 @@ G = np.empty(test, dtype = float)
 epsilon_t = np.zeros((test, iterations), dtype=float)
 #AOI_test_iter = np.ones((test, iterations, number_of_users), dtype=float)
 AOI_test = np.ones((test, number_of_users), dtype=float)
+
+AC_user_tests_all = []
+CH_user_tests_all = []
+BT_user_tests_all = []
+REW_user_tests_all = []
+G_user_tests_all = []
+Ch_Raw_tests_all = []
+
+AC_user_mean_all = []
+CH_mean_all = []
+Battery_mean_all = []
+Rew_u_mean_all = []
 #slot_aloc_test = []  # List of (users × slots) matrices
 for t in range(1, test+1):
-    AC_user_Mean = np.empty((iterations), dtype=float)
-    CH_mean = np.empty((iterations), dtype=float)
-    Battery_mean = np.empty((iterations), dtype=float)
-    Rew_u_mean = np.empty((iterations), dtype=float)
-    AC_user_tests = np.empty((iterations, number_of_users), dtype=float)
-    CH_user_tests = np.empty((iterations, number_of_users), dtype=float)
-    BT_user_tests = np.empty((iterations, number_of_users), dtype=float)
-    REW_user_tests = np.empty((iterations, number_of_users), dtype=float)
-    G_user_tests = np.empty((iterations, number_of_users), dtype=float)
-    Ch_Raw_tests = np.empty((iterations, number_of_users), dtype=float)
+    #AC_user_Mean = np.empty((iterations), dtype=float)
+    #CH_mean = np.empty((iterations), dtype=float)
+    #Battery_mean = np.empty((iterations), dtype=float)
+    #Rew_u_mean = np.empty((iterations), dtype=float)
+    #AC_user_tests = np.empty((iterations, number_of_users), dtype=float)
+    #CH_user_tests = np.empty((iterations, number_of_users), dtype=float)
+    #BT_user_tests = np.empty((iterations, number_of_users), dtype=float)
+    #REW_user_tests = np.empty((iterations, number_of_users), dtype=float)
+    #G_user_tests = np.empty((iterations, number_of_users), dtype=float)
+    #Ch_Raw_tests = np.empty((iterations, number_of_users), dtype=float)
     slot_aloc_test = np.zeros((number_of_users), dtype=float)
     idle_slots = np.zeros(iterations, dtype=int)
     slot_aloc_it = np.zeros((iterations, np.size(users), number_of_slots), dtype=int)
@@ -2259,28 +2270,42 @@ for t in range(1, test+1):
     df = pd.DataFrame(AOI_test_iter)
     df.to_csv(f"AOI_test_iter_t{t}.csv", index=False)
     del AOI_test_iter
-    AC_user_tests [ :, :] = AC_user_f
-    CH_user_tests [ :, :] = Ch_f
-    BT_user_tests [ :, :] = Battery_f
-    REW_user_tests [:, :] = Rew_u_f
-    G_user_tests[ :, :] = G_Raw_f
-    Ch_Raw_tests[ :, :] = CH_raw_f
-    AC_user_Mean [ :] = np.mean(AC_user_f, axis=1)
-    CH_mean [:] = np.mean(Ch_f, axis=1)
-    Battery_mean [:] = np.mean(Battery_f, axis=1)
-    Rew_u_mean [:] = np.mean(Rew_u_f, axis=1)
+    # store 2D matrices (iterations × users)
+    AC_user_tests_all.append(AC_user_f)
+    CH_user_tests_all.append(Ch_f)
+    BT_user_tests_all.append(Battery_f)
+    REW_user_tests_all.append(Rew_u_f)
+    G_user_tests_all.append(G_Raw_f)
+    Ch_Raw_tests_all.append(CH_raw_f)
 
-    save_per_test_matrix(G_user_tests, "G_user_tests", t-1, output_dir="data")
-    save_per_test_matrix(AC_user_tests, "AC_user_tests", t-1, output_dir="data")
-    save_per_test_matrix(CH_user_tests, "CH_user_tests", t-1, output_dir="data")
-    save_per_test_matrix(BT_user_tests, "BT_user_tests", t-1, output_dir="data")
-    save_per_test_matrix(REW_user_tests, "REW_user_tests", t-1, output_dir="data")
-    save_per_test_matrix(Ch_Raw_tests, "Ch_Raw_tests", t-1, output_dir="data")
+    # store 1D mean vectors (users,)
+    AC_user_mean_all.append(np.mean(AC_user_f, axis=1))
+    CH_mean_all.append(np.mean(Ch_f, axis=1))
+    Battery_mean_all.append(np.mean(Battery_f, axis=1))
+    Rew_u_mean_all.append(np.mean(Rew_u_f, axis=1))
 
-    save_per_test_vector(AC_user_Mean, "AC_user_Mean", t-1, output_dir="data")
-    save_per_test_vector(CH_mean, "CH_mean", t-1, output_dir="data")
-    save_per_test_vector(Battery_mean, "Battery_mean", t-1, output_dir="data")
-    save_per_test_vector(Rew_u_mean, "Rew_u_mean", t-1, output_dir="data")
+    #AC_user_tests [ :, :] = AC_user_f
+    #CH_user_tests [ :, :] = Ch_f
+    #BT_user_tests [ :, :] = Battery_f
+    #REW_user_tests [:, :] = Rew_u_f
+    #G_user_tests[ :, :] = G_Raw_f
+    #Ch_Raw_tests[ :, :] = CH_raw_f
+    #AC_user_Mean [ :] = np.mean(AC_user_f, axis=1)
+    #CH_mean [:] = np.mean(Ch_f, axis=1)
+    #Battery_mean [:] = np.mean(Battery_f, axis=1)
+    #Rew_u_mean [:] = np.mean(Rew_u_f, axis=1)
+
+    #save_per_test_matrix(G_user_tests, "G_user_tests", t-1, output_dir="data")
+    #save_per_test_matrix(AC_user_tests, "AC_user_tests", t-1, output_dir="data")
+    #save_per_test_matrix(CH_user_tests, "CH_user_tests", t-1, output_dir="data")
+    #save_per_test_matrix(BT_user_tests, "BT_user_tests", t-1, output_dir="data")
+    #save_per_test_matrix(REW_user_tests, "REW_user_tests", t-1, output_dir="data")
+    #save_per_test_matrix(Ch_Raw_tests, "Ch_Raw_tests", t-1, output_dir="data")
+
+    #save_per_test_vector(AC_user_Mean, "AC_user_Mean", t-1, output_dir="data")
+    #save_per_test_vector(CH_mean, "CH_mean", t-1, output_dir="data")
+    #save_per_test_vector(Battery_mean, "Battery_mean", t-1, output_dir="data")
+    #save_per_test_vector(Rew_u_mean, "Rew_u_mean", t-1, output_dir="data")
 
     #AOI_test [t-1, :] = np.mean(AOI_test_iter[t-1, :, :], axis=0)
     # mean over iterations and slots → gives 1 number per user
@@ -2303,22 +2328,58 @@ for t in range(1, test+1):
 
 #print(f"Last Q Table {q_tables}")
 
-output_dir = "data"
 
-AC_user_tests = load_matrix_tests("AC_user_tests", test, input_dir=output_dir)
-CH_user_tests = load_matrix_tests("CH_user_tests", test, input_dir=output_dir)
-BT_user_tests = load_matrix_tests("BT_user_tests", test, input_dir=output_dir)
-REW_user_tests = load_matrix_tests("REW_user_tests", test, input_dir=output_dir)
-G_user_tests = load_matrix_tests("G_user_tests", test, input_dir=output_dir)
-Ch_Raw_tests = load_matrix_tests("Ch_Raw_tests", test, input_dir=output_dir)
+from data_npy_io import save_all_test_data_npy
+
+save_all_test_data_npy(
+    matrices_dict={
+        "AC_user_tests": AC_user_tests_all,
+        "CH_user_tests": CH_user_tests_all,
+        "BT_user_tests": BT_user_tests_all,
+        "REW_user_tests": REW_user_tests_all,
+        "G_user_tests": G_user_tests_all,
+        "Ch_Raw_tests": Ch_Raw_tests_all,
+
+    },
+    vectors_dict={
+        "AC_user_Mean": AC_user_mean_all,
+        "CH_mean": CH_mean_all,
+        "Battery_mean_all": Battery_mean_all,
+        "Rew_u_mean_all": Rew_u_mean_all,
+        # ...
+    },
+    output_dir="data"
+)
+
+
+
+#output_dir = "data"
+
+
+#AC_user_tests = load_matrix_tests("AC_user_tests", test, input_dir=output_dir)
+#CH_user_tests = load_matrix_tests("CH_user_tests", test, input_dir=output_dir)
+#BT_user_tests = load_matrix_tests("BT_user_tests", test, input_dir=output_dir)
+#REW_user_tests = load_matrix_tests("REW_user_tests", test, input_dir=output_dir)
+#G_user_tests = load_matrix_tests("G_user_tests", test, input_dir=output_dir)
+#Ch_Raw_tests = load_matrix_tests("Ch_Raw_tests", test, input_dir=output_dir)
 
 # Precomputed mean vectors from earlier save
-AC_user_Mean = load_vector_tests("AC_user_Mean", test, input_dir=output_dir)
-CH_mean = load_vector_tests("CH_mean", test, input_dir=output_dir)
-Battery_mean = load_vector_tests("Battery_mean", test, input_dir=output_dir)
-Rew_u_mean = load_vector_tests("Rew_u_mean", test, input_dir=output_dir)
+#AC_user_Mean = load_vector_tests("AC_user_Mean", test, input_dir=output_dir)
+#CH_mean = load_vector_tests("CH_mean", test, input_dir=output_dir)
+#Battery_mean = load_vector_tests("Battery_mean", test, input_dir=output_dir)
+#Rew_u_mean = load_vector_tests("Rew_u_mean", test, input_dir=output_dir)
 
 # If you want to compute the mean over iterations → (tests, users)
+
+from data_npy_io import load_test_matrix_npy, load_test_vector_npy
+
+AC_user_tests = load_test_matrix_npy("AC_user_tests")
+AC_user_Mean = load_test_vector_npy("AC_user_Mean")
+CH_user_tests = load_test_matrix_npy("CH_user_tests")
+BT_user_tests = load_test_vector_npy("BT_user_tests")
+REW_user_tests = load_test_matrix_npy("REW_user_tests")
+G_user_tests = load_test_matrix_npy("G_user_tests")
+Ch_Raw_tests = load_test_matrix_npy("Ch_Raw_tests")
 AC_user_avg_test = np.mean(AC_user_tests, axis=1)
 CH_user_avg_test = np.mean(CH_user_tests, axis=1)
 BT_user_avg_test = np.mean(BT_user_tests, axis=1)
