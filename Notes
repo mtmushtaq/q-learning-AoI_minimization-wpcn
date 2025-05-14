@@ -230,3 +230,55 @@ def plot_user_slot_activity_histograms(slot_aloc_test):
 
     fig.suptitle("Mean Slot Selection Activity per User Across Tests", fontsize=16)
     plt.show()
+
+
+
+for t in range(test):
+    start_idx = t * iterations
+    end_idx = (t + 1) * iterations
+
+    # Extract AOI block for this test (frames × users)
+    aoi_block = AOI_users[start_idx:end_idx, :]
+
+    # Mean over iterations → per-user AAOI
+    it_aoi_means = np.mean(aoi_block, axis=1)
+    #user_means = np.mean(aoi_block, axis=0)  # Shape: (users,)
+
+    # Store mean and std dev across users
+    AOI_test_means.append(np.mean(it_aoi_means))
+    AOI_test_stds.append(np.std(it_aoi_means))
+
+    #G_values.append(number_of_users / current_slots)
+    #current_slots -= d_slot
+
+# Convert to numpy arrays
+AOI_test_means = np.array(AOI_test_means)
+AOI_test_stds = np.array(AOI_test_stds)
+G_v = np.linspace(0, test - 1, test)
+
+plot_aoi_convergence_simple(G_v, AOI_test_means , AOI_test_stds, label=r"$\bar{A}$")
+
+
+
+AOI_mean  = np.mean(AOI_users, axis=1)
+
+# Reshape to: (tests, frames, users)
+AOI_users_reshaped = AOI_users.reshape(test, iterations, number_of_users)
+
+# Take mean across tests → shape: (frames, users)
+AOI_avg_all = np.mean(AOI_users_reshaped, axis=0)
+
+xv = np.linspace(0, AOI_mean.shape[0] - 1, AOI_mean.shape[0])
+fig, ax = plt.subplots(1, 1)
+ax.plot(xv, pd.Series(AOI_mean).ewm(span=2).mean(), 'b-', lw=1, alpha=1, label=f'Average AoI S= {number_of_slots}, U = {number_of_users}')  # AoI medio del sistema per ogni iterazione
+#ax.plot(xv, np.mean(AAOI_all[1, :, :], axis=0), 'k--', lw=1, alpha=1, label=f'Average AoI S= {n_slot-14}, U = {number_of_users}')  # AoI medio del sistema per ogni iterazione
+#ax.plot(xv, np.mean(AAOI_all[4, :, :], axis=0), 'm*', lw=1, alpha=1, label=f'Average AoI S= {n_slot-28}, U = {number_of_users}')  # AoI medio del sistema per ogni iterazione
+# ax.plot(xv, xv, AAOI_all [1, :], 'r--', lw=2, alpha=0.6, label ='AoI per Iteration S= 10, U-2') # AAoI cumulativo normalizzato, calcolato dividendo summ_AAoI per il numero di iterazioni considerate fino a quel punto
+ax.set_title('AoI Evolvement vs Iterations')
+ax.set_ylabel('Average AoI')
+ax.set_xlabel('Iterations')
+ax.legend()
+plt.tight_layout()
+#fig.show()
+ax.grid(True)
+plt.show()

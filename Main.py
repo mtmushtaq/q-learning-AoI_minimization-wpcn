@@ -24,19 +24,20 @@ from scipy.interpolate import griddata
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+from data_npy_io import *
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d import Axes3D
 
 # This code with an optimized Learning rate= 0.5, But we need to find the value of Epsilon for good convergence
 # define training parameters
 discount_factor = 0.99  # 0.001
-test = 100
+test = 750
 learning_rate = 0.0001
 #define system parameters
 mu_bu= 0.05 # one unit of battery
-number_of_slots = 12
-number_of_users = 9
-time_duration = 0.02
+number_of_slots = 15
+number_of_users = 12
+time_duration = 0.025
 p= 4.6
 dist_min = 1
 dist_max = 7
@@ -47,7 +48,7 @@ iterations = 10000
 Frame_size = []
 STD_AoI_u_AT = []
 STD_AoI_u_BT = []
-Batch_size = 100
+Batch_size = 10
 it_ind = 0
 explore_count = []
 exploit_count = []
@@ -235,7 +236,7 @@ def get_row(pw, ch):
     #elif act < BT:
      #   rew = D_AOI + (2* act)
     #return rew
-def get_rew(B_AOI, A_AOI, BT, act, ch, max_AOI=100, max_BT=5, w1=0.4, w2=0.6, w3=0.6):
+def get_rew(B_AOI, A_AOI, BT, act, ch, max_AOI=100, max_BT=5, w1=0.9, w2=0.6, w3=0.6):
     D_AOI = B_AOI - A_AOI
     D_AOI_norm = D_AOI / number_of_slots
     act_norm = act / 5
@@ -2011,6 +2012,58 @@ def plot_aoi_testwise(AOI_test, smoothing_window=3):
     plt.tight_layout()
     plt.show()
 
+def plot_final_aoi_per_test(AOI_test, smoothing_window=3):
+    """
+    Plot final AoI per test:
+    - Per-user evolution
+    - Overall average across users
+
+    Parameters:
+    - AOI_test: np.ndarray of shape (tests, users), each entry is the final AoI of user in that test
+    - smoothing_window: int, for SMA smoothing over tests
+    """
+    num_tests, num_users = AOI_test.shape
+
+    # Plot 1: Per-user AoI across tests
+    num_cols = 5
+    num_rows = int(np.ceil(num_users / num_cols))
+
+    fig, axs = plt.subplots(num_rows, num_cols, figsize=(4 * num_cols, 3 * num_rows), constrained_layout=True)
+    axs = axs.flatten()
+
+    for u in range(num_users):
+        raw = AOI_test[:, u]
+        smoothed = pd.Series(raw).rolling(window=smoothing_window, min_periods=1, center=True).mean()
+
+        axs[u].plot(raw, color='lightgray', label='Raw')
+        axs[u].plot(smoothed, color='blue', label=f'SMA (w={smoothing_window})')
+        axs[u].set_title(f"User {u}")
+        axs[u].set_xlabel("Test Index")
+        axs[u].set_ylabel("Final AoI")
+        axs[u].legend()
+        axs[u].grid(True)
+
+    for i in range(num_users, len(axs)):
+        fig.delaxes(axs[i])
+
+    fig.suptitle("Per-User Final AoI Over Tests", fontsize=16)
+    plt.show()
+
+    # Plot 2: Overall average AoI over all users
+    avg_aoi_all_users = AOI_test.mean(axis=1)
+    smoothed_avg = pd.Series(avg_aoi_all_users).rolling(window=smoothing_window, min_periods=1, center=True).mean()
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(avg_aoi_all_users, color='gray', label='Raw Mean AoI')
+    plt.plot(smoothed_avg, color='darkgreen', linewidth=2, label='Smoothed Mean AoI')
+    plt.title("Mean Final AoI per Test (All Users)")
+    plt.xlabel("Test Index")
+    plt.ylabel("Mean Final AoI")
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
 
 ## Command to randomly pick values----->>>>> np.random.randint(0, 7, size=(k.size * x.size, a.size), dtype=int)
 #reward = np.empty((number_of_users, iterations+1), dtype=float)
@@ -2052,6 +2105,8 @@ AC_user_mean_all = []
 CH_mean_all = []
 Battery_mean_all = []
 Rew_u_mean_all = []
+AOI_test_iter_all = []  # Holds all tests' (iterations × users) AoI
+
 #slot_aloc_test = []  # List of (users × slots) matrices
 for t in range(1, test+1):
     #AC_user_Mean = np.empty((iterations), dtype=float)
@@ -2266,10 +2321,8 @@ for t in range(1, test+1):
         exploit_count.append(exploit)
         # Update AOI using current frame AOI and add it into next frame AOI so that it can be used for next frame
         #Update Next State
-    # Save per-test AoI_iter to disk
-    df = pd.DataFrame(AOI_test_iter)
-    df.to_csv(f"AOI_test_iter_t{t}.csv", index=False)
-    del AOI_test_iter
+
+    AOI_test_iter_all.append(AOI_test_iter[-1, :])
     # store 2D matrices (iterations × users)
     AC_user_tests_all.append(AC_user_f)
     CH_user_tests_all.append(Ch_f)
@@ -2317,19 +2370,23 @@ for t in range(1, test+1):
     #min_epsilon += 0.05
     #number_of_users += 1
     #dist_max += 0.03
-    K_factor -= 0.005
+    #K_factor -= 0.01
     #learning_rate -= 0.000005
     #learning_rate = round(learning_rate, 6)
-    K_factor = round(K_factor, 2)
+    #K_factor = round(K_factor, 2)
     #dist_max = round(dist_max, 2)
     print(f"Test {t} Finished")
     #print(f"Updated Learning Rate: {learning_rate}")
-    print(f"Updated K factor: {K_factor}")
+    #print(f"Updated K factor: {K_factor}")
 
 #print(f"Last Q Table {q_tables}")
 
+save_all_test_data_npy(
+    matrices_dict={"AOI_test_iter": AOI_test_iter_all},
+    vectors_dict={},  # no vector version in this case
+    output_dir="data"
+)
 
-from data_npy_io import save_all_test_data_npy
 
 save_all_test_data_npy(
     matrices_dict={
@@ -2371,7 +2428,6 @@ save_all_test_data_npy(
 
 # If you want to compute the mean over iterations → (tests, users)
 
-from data_npy_io import load_test_matrix_npy, load_test_vector_npy
 
 AC_user_tests = load_test_matrix_npy("AC_user_tests")
 AC_user_Mean = load_test_vector_npy("AC_user_Mean")
@@ -2387,67 +2443,14 @@ REW_user_avg_test = np.mean(REW_user_tests, axis=1)
 G_user_avg_test = np.mean(G_user_tests, axis=1)
 Ch_Raw_avg_test = np.mean(Ch_Raw_tests, axis=1)
 
-AOI_test = np.zeros((test, number_of_users))
-
-for t in range(test):
-    df = pd.read_csv(f"AOI_test_iter_t{t+1}.csv")
-    AOI_test[t, :] = df.mean(axis=0)  # Average over iterations
 
 
-AOI_mean  = np.mean(AOI_users, axis=1)
-
-# Reshape to: (tests, frames, users)
-AOI_users_reshaped = AOI_users.reshape(test, iterations, number_of_users)
-
-# Take mean across tests → shape: (frames, users)
-AOI_avg_all = np.mean(AOI_users_reshaped, axis=0)
-
-xv = np.linspace(0, AOI_mean.shape[0] - 1, AOI_mean.shape[0])
-fig, ax = plt.subplots(1, 1)
-ax.plot(xv, pd.Series(AOI_mean).ewm(span=2).mean(), 'b-', lw=1, alpha=1, label=f'Average AoI S= {number_of_slots}, U = {number_of_users}')  # AoI medio del sistema per ogni iterazione
-#ax.plot(xv, np.mean(AAOI_all[1, :, :], axis=0), 'k--', lw=1, alpha=1, label=f'Average AoI S= {n_slot-14}, U = {number_of_users}')  # AoI medio del sistema per ogni iterazione
-#ax.plot(xv, np.mean(AAOI_all[4, :, :], axis=0), 'm*', lw=1, alpha=1, label=f'Average AoI S= {n_slot-28}, U = {number_of_users}')  # AoI medio del sistema per ogni iterazione
-# ax.plot(xv, xv, AAOI_all [1, :], 'r--', lw=2, alpha=0.6, label ='AoI per Iteration S= 10, U-2') # AAoI cumulativo normalizzato, calcolato dividendo summ_AAoI per il numero di iterazioni considerate fino a quel punto
-ax.set_title('AoI Evolvement vs Iterations')
-ax.set_ylabel('Average AoI')
-ax.set_xlabel('Iterations')
-ax.legend()
-plt.tight_layout()
-#fig.show()
-ax.grid(True)
-plt.show()
-
-plot_aoi_block_avg(AOI_mean, number_of_slots, number_of_users, block_size=100)
+#plot_aoi_block_avg(AOI_mean, number_of_slots, number_of_users, block_size=100)
 
 AOI_test_means = []
 AOI_test_stds = []
 #G_values = []
 #current_slots = number_of_slots
-
-for t in range(test):
-    start_idx = t * iterations
-    end_idx = (t + 1) * iterations
-
-    # Extract AOI block for this test (frames × users)
-    aoi_block = AOI_users[start_idx:end_idx, :]
-
-    # Mean over iterations → per-user AAOI
-    it_aoi_means = np.mean(aoi_block, axis=1)
-    #user_means = np.mean(aoi_block, axis=0)  # Shape: (users,)
-
-    # Store mean and std dev across users
-    AOI_test_means.append(np.mean(it_aoi_means))
-    AOI_test_stds.append(np.std(it_aoi_means))
-
-    #G_values.append(number_of_users / current_slots)
-    #current_slots -= d_slot
-
-# Convert to numpy arrays
-AOI_test_means = np.array(AOI_test_means)
-AOI_test_stds = np.array(AOI_test_stds)
-G_v = np.linspace(0, test - 1, test)
-
-plot_aoi_convergence_simple(G_v, AOI_test_means , AOI_test_stds, label=r"$\bar{A}$")
 
 # Plot with error bars
 #plt.figure(figsize=(8, 6))
@@ -2490,19 +2493,19 @@ for t in range(test):
     #plot_reward_vs_actions_contour(AC_user_Mean [t, :], Rew_u_mean [t, :], CH_mean [t, :], slots[t])
     #slots -= d_slot
 
-xf = np.linspace(0, iterations, iterations)
-fig1, ax = plt.subplots(1, 1)
-ax.plot(xf, AOI_avg_all[:,0], 'o', lw=1, alpha=1, label=f'Average AoI S= {slots[0]}, U = {0}')  # AoI medio del sistema per ogni iterazione
-ax.plot(xf, AOI_avg_all[:,1], 'k*', lw=3, alpha=1, label=f'Average AoI S= {slots[0]}, U = {1}')  # AoI medio del sistema per ogni iterazione
-ax.plot(xf, AOI_avg_all[:,2], '+', lw=1, alpha=1, label=f'Average AoI S= {slots[0]}, U = {2}')  # AoI medio del sistema per ogni iterazione
-ax.set_title('AoI Evolvement vs Iterations')
-ax.set_ylabel('Users AoI')
-ax.set_xlabel('Frames')
-ax.legend()
-plt.tight_layout()
+#xf = np.linspace(0, iterations, iterations)
+#fig1, ax = plt.subplots(1, 1)
+#ax.plot(xf, AOI_avg_all[:,0], 'o', lw=1, alpha=1, label=f'Average AoI S= {slots[0]}, U = {0}')  # AoI medio del sistema per ogni iterazione
+#ax.plot(xf, AOI_avg_all[:,1], 'k*', lw=3, alpha=1, label=f'Average AoI S= {slots[0]}, U = {1}')  # AoI medio del sistema per ogni iterazione
+#ax.plot(xf, AOI_avg_all[:,2], '+', lw=1, alpha=1, label=f'Average AoI S= {slots[0]}, U = {2}')  # AoI medio del sistema per ogni iterazione
+#ax.set_title('AoI Evolvement vs Iterations')
+#ax.set_ylabel('Users AoI')
+#ax.set_xlabel('Frames')
+#ax.legend()
+#plt.tight_layout()
 #fig.show()
-ax.grid(True)
-plt.show()
+#ax.grid(True)
+#plt.show()
 
 #plot_reward_vs_actions_contour_all_tests (AC_user_Mean, Rew_u_mean, CH_mean, slots)
 
@@ -2579,7 +2582,11 @@ plot_testwise_battery_evolution(BT_user_tests, smoothing_window=3)
 
 #plot_aoi_evolution(AOI_test_iter, smoothing_window=1000)
 
-plot_aoi_testwise(AOI_test, smoothing_window=30)
+AOI_test_iter_all = load_test_matrix_npy("AOI_test_iter")
+
+#plot_aoi_testwise(AOI_test_iter_all, smoothing_window=30)
+
+plot_final_aoi_per_test(AOI_test_iter_all, smoothing_window=30)
 
 print (f"Explore: {explore}")
 print (f"Exploit: {exploit}")
