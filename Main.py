@@ -32,7 +32,7 @@ from mpl_toolkits.mplot3d import Axes3D
 # define training parameters
 discount_factor = 0.99  # 0.001
 test = 750
-learning_rate = 0.0001
+learning_rate = 0.001
 #define system parameters
 mu_bu= 0.05 # one unit of battery
 number_of_slots = 15
