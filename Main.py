@@ -36,7 +36,7 @@ learning_rate = 0.0001
 #define system parameters
 mu_bu= 0.05 # one unit of battery
 number_of_slots = 15
-number_of_users = 12
+number_of_users = 20
 time_duration = 0.025
 p= 4.6
 dist_min = 1
@@ -1211,6 +1211,33 @@ def plot_contour_reward(CH_user_tests, BT_user_tests, REW_user_tests, test_idx, 
     plt.tight_layout()
     plt.show()
 
+from scipy.interpolate import griddata
+
+def plot_contour_action_avg(CH_user_tests, BT_user_tests, AC_user_tests, test_idx, smooth_span=50):
+    """
+    Contour plot of mean Action vs Channel and Battery (averaged over users) for a given test.
+    """
+
+    # Get test data: shape (iterations, users) → mean over users → shape (iterations,)
+    ch = pd.Series(np.mean(CH_user_tests[test_idx], axis=1)).ewm(span=smooth_span).mean().to_numpy()
+    bt = pd.Series(np.mean(BT_user_tests[test_idx], axis=1)).ewm(span=smooth_span).mean().to_numpy()
+    ac = pd.Series(np.mean(AC_user_tests[test_idx], axis=1)).ewm(span=smooth_span).mean().to_numpy()
+
+    # Grid for interpolation
+    xi = np.linspace(min(ch), max(ch), 100)
+    yi = np.linspace(min(bt), max(bt), 100)
+    Xi, Yi = np.meshgrid(xi, yi)
+    zi = griddata((ch, bt), ac, (Xi, Yi), method='cubic')
+
+    # Plot
+    fig, ax = plt.subplots(figsize=(6, 5))
+    cs = ax.contourf(Xi, Yi, zi, levels=20, cmap='viridis')
+    fig.colorbar(cs, ax=ax, label='Mean Action')
+    ax.set_xlabel("Mean Channel (Smoothed)")
+    ax.set_ylabel("Mean Battery (Smoothed)")
+    ax.set_title(f"Action Contour Plot (Averaged) - Test {test_idx}")
+    plt.tight_layout()
+    plt.show()
 
 def plot_hexbin_all_tests(CH_user_tests, BT_user_tests, VAL_user_tests, label="Action", title="Hexbin", smooth_span=50,
                           gridsize=30):
@@ -2064,6 +2091,78 @@ def plot_final_aoi_per_test(AOI_test, smoothing_window=3):
     plt.tight_layout()
     plt.show()
 
+def plot_action_reward_contour(
+    CH_user_tests,
+    BT_user_tests,
+    VAL_user_tests,
+    mode="testavg",         # 'testwise', 'testavg', 'global'
+    value_label="Action",   # 'Action' or 'Reward'
+    test_idx=0,
+    smooth_span=50,
+    last_n_iters=None
+):
+    """
+    Plot a contour of Action or Reward vs Channel and Battery
+    across tests, iterations, and users.
+
+    Parameters:
+    - CH_user_tests, BT_user_tests: ndarray (tests, iterations, users)
+    - VAL_user_tests: Action or Reward array (same shape)
+    - mode: 'testwise', 'testavg', 'global'
+    - value_label: 'Action' or 'Reward'
+    - test_idx: used only if mode='testwise'
+    - last_n_iters: limit to last N iterations if not None
+    """
+    assert mode in ["testwise", "testavg", "global"], "Invalid mode"
+
+    # Select data based on mode
+    if mode == "testwise":
+        ch = CH_user_tests[test_idx]
+        bt = BT_user_tests[test_idx]
+        val = VAL_user_tests[test_idx]
+
+    elif mode == "testavg":
+        ch = np.mean(CH_user_tests, axis=0)     # (iterations, users)
+        bt = np.mean(BT_user_tests, axis=0)
+        val = np.mean(VAL_user_tests, axis=0)
+
+    elif mode == "global":
+        ch = CH_user_tests.reshape(-1, CH_user_tests.shape[2])   # (tests*iterations, users)
+        bt = BT_user_tests.reshape(-1, BT_user_tests.shape[2])
+        val = VAL_user_tests.reshape(-1, VAL_user_tests.shape[2])
+
+    # Average over users
+    ch = np.mean(ch, axis=1)
+    bt = np.mean(bt, axis=1)
+    val = np.mean(val, axis=1)
+
+    # Limit to last N iterations
+    if last_n_iters is not None:
+        ch = ch[-last_n_iters:]
+        bt = bt[-last_n_iters:]
+        val = val[-last_n_iters:]
+
+    # Smoothing
+    ch = pd.Series(ch).ewm(span=smooth_span).mean().to_numpy()
+    bt = pd.Series(bt).ewm(span=smooth_span).mean().to_numpy()
+    val = pd.Series(val).ewm(span=smooth_span).mean().to_numpy()
+
+    # Grid
+    xi = np.linspace(min(ch), max(ch), 100)
+    yi = np.linspace(min(bt), max(bt), 100)
+    Xi, Yi = np.meshgrid(xi, yi)
+    zi = griddata((ch, bt), val, (Xi, Yi), method='cubic')
+
+    # Plot
+    fig, ax = plt.subplots(figsize=(6, 5))
+    cs = ax.contourf(Xi, Yi, zi, levels=20, cmap='viridis' if value_label == "Action" else 'plasma')
+    fig.colorbar(cs, ax=ax, label=value_label)
+    ax.set_xlabel("Channel (Avg over Users, Smoothed)")
+    ax.set_ylabel("Battery (Avg over Users, Smoothed)")
+    ax.set_title(f"{value_label} Contour - Mode: {mode}")
+    plt.tight_layout()
+    plt.show()
+
 
 ## Command to randomly pick values----->>>>> np.random.randint(0, 7, size=(k.size * x.size, a.size), dtype=int)
 #reward = np.empty((number_of_users, iterations+1), dtype=float)
@@ -2587,6 +2686,9 @@ AOI_test_iter_all = load_test_matrix_npy("AOI_test_iter")
 #plot_aoi_testwise(AOI_test_iter_all, smoothing_window=30)
 
 plot_final_aoi_per_test(AOI_test_iter_all, smoothing_window=30)
+
+plot_action_reward_contour(CH_user_tests, BT_user_tests, REW_user_tests, mode="global", value_label="Reward")
+plot_action_reward_contour(CH_user_tests, BT_user_tests, AC_user_tests, mode="global", value_label="Action")
 
 print (f"Explore: {explore}")
 print (f"Exploit: {exploit}")
