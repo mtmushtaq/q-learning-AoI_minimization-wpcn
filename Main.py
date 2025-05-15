@@ -1,4 +1,4 @@
-#import sys
+ #import sys
 #import matplotlib
 #matplotlib.use('Qt5Agg')  # Or TkAgg 'Qt5Agg', 'GTK3Agg' depending on your system
 #from typing import Any
@@ -31,12 +31,12 @@ from mpl_toolkits.mplot3d import Axes3D
 # This code with an optimized Learning rate= 0.5, But we need to find the value of Epsilon for good convergence
 # define training parameters
 discount_factor = 0.99  # 0.001
-test = 750
+test = 350
 learning_rate = 0.001
 #define system parameters
 mu_bu= 0.05 # one unit of battery
-number_of_slots = 15
-number_of_users = 20
+number_of_slots = 20
+number_of_users = 15
 time_duration = 0.025
 p= 4.6
 dist_min = 1
@@ -2468,13 +2468,14 @@ for t in range(1, test+1):
     #number_of_slots -= d_slot
     #min_epsilon += 0.05
     #number_of_users += 1
-    #dist_max += 0.03
+    dist_max += 0.03
     #K_factor -= 0.01
     #learning_rate -= 0.000005
     #learning_rate = round(learning_rate, 6)
     #K_factor = round(K_factor, 2)
-    #dist_max = round(dist_max, 2)
+    dist_max = round(dist_max, 2)
     print(f"Test {t} Finished")
+    print(f"Distance: {dist_max}")
     #print(f"Updated Learning Rate: {learning_rate}")
     #print(f"Updated K factor: {K_factor}")
 
@@ -2483,7 +2484,7 @@ for t in range(1, test+1):
 save_all_test_data_npy(
     matrices_dict={"AOI_test_iter": AOI_test_iter_all},
     vectors_dict={},  # no vector version in this case
-    output_dir="data"
+    output_dir="data Slot 15 User 20 Dist 2"  # specify your output directory
 )
 
 
@@ -2504,7 +2505,7 @@ save_all_test_data_npy(
         "Rew_u_mean_all": Rew_u_mean_all,
         # ...
     },
-    output_dir="data"
+    output_dir="data Slot 15 User 20 Dist 2"  # specify your output directory
 )
 
 
@@ -2528,13 +2529,13 @@ save_all_test_data_npy(
 # If you want to compute the mean over iterations → (tests, users)
 
 
-AC_user_tests = load_test_matrix_npy("AC_user_tests")
-AC_user_Mean = load_test_vector_npy("AC_user_Mean")
-CH_user_tests = load_test_matrix_npy("CH_user_tests")
-BT_user_tests = load_test_vector_npy("BT_user_tests")
-REW_user_tests = load_test_matrix_npy("REW_user_tests")
-G_user_tests = load_test_matrix_npy("G_user_tests")
-Ch_Raw_tests = load_test_matrix_npy("Ch_Raw_tests")
+AC_user_tests = load_test_matrix_npy("AC_user_tests", "data Slot 15 User 20 Dist 2")
+AC_user_Mean = load_test_vector_npy("AC_user_Mean", "data Slot 15 User 20 Dist 2")
+CH_user_tests = load_test_matrix_npy("CH_user_tests", "data Slot 15 User 20 Dist 2")
+BT_user_tests = load_test_vector_npy("BT_user_tests", "data Slot 15 User 20 Dist 2")
+REW_user_tests = load_test_matrix_npy("REW_user_tests", "data Slot 15 User 20 Dist 2")
+G_user_tests = load_test_matrix_npy("G_user_tests", "data Slot 15 User 20 Dist 2")
+Ch_Raw_tests = load_test_matrix_npy("Ch_Raw_tests", "data Slot 15 User 20 Dist 2")
 AC_user_avg_test = np.mean(AC_user_tests, axis=1)
 CH_user_avg_test = np.mean(CH_user_tests, axis=1)
 BT_user_avg_test = np.mean(BT_user_tests, axis=1)
@@ -2687,8 +2688,8 @@ AOI_test_iter_all = load_test_matrix_npy("AOI_test_iter")
 
 plot_final_aoi_per_test(AOI_test_iter_all, smoothing_window=30)
 
-plot_action_reward_contour(CH_user_tests, BT_user_tests, REW_user_tests, mode="global", value_label="Reward")
-plot_action_reward_contour(CH_user_tests, BT_user_tests, AC_user_tests, mode="global", value_label="Action")
+#plot_action_reward_contour(CH_user_tests, BT_user_tests, REW_user_tests, mode="global", value_label="Reward")
+#plot_action_reward_contour(CH_user_tests, BT_user_tests, AC_user_tests, mode="global", value_label="Action")
 
 print (f"Explore: {explore}")
 print (f"Exploit: {exploit}")
