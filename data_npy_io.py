@@ -33,11 +33,11 @@ def save_all_test_data_npy(
 # LOAD FUNCTIONS
 # -----------------------------
 
-def load_test_matrix_npy(name: str, input_dir: str = "data"):
+def load_test_matrix_npy(name: str, input_dir: str ):
     """Load saved 3D matrix from .npy file."""
     return np.load(os.path.join(input_dir, f"{name}.npy"))
 
-def load_test_vector_npy(name: str, input_dir: str = "data"):
+def load_test_vector_npy(name: str, input_dir: str ):
     """Load saved 2D vector matrix from .npy file."""
     return np.load(os.path.join(input_dir, f"{name}.npy"))
 
