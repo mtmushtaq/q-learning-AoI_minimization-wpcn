@@ -58,6 +58,7 @@ K_factor =  15
 decay_rate = 0.0005
 upsilon = 0.025 # One unit to transmit one replica
 d_slot = 8
+Out_dir  = "S_60_U_40_UP_020"
 #u = np.empty(number_of_users, dtype=object)  # define users array
 #for i in range(number_of_users):
  #   u[i] = i + 1
@@ -2091,7 +2092,100 @@ def plot_final_aoi_per_test(AOI_test, smoothing_window=3):
     plt.tight_layout()
     plt.show()
 
-def plot_action_reward_contour(
+def plot_action_vs_battery_grouped_by_channel(
+         BT_user_tests, CH_user_tests, AC_user_tests,
+         smooth_span=50,
+         num_bins=20,
+         channel_splits=(0.33, 0.66),
+         show_quantiles=True
+):
+ """
+ Plot Action vs Battery with grouped channel conditions: Low, Medium, High.
+
+ Parameters:
+ - BT_user_tests, CH_user_tests, AC_user_tests: shape (tests, iterations, users)
+ - smooth_span: smoothing span for EWMA
+ - num_bins: number of battery bins
+ - channel_splits: tuple with 2 values to split low/medium/high channel thresholds (quantiles)
+ - show_quantiles: if True, shows 25–75 percentile bands instead of std
+ """
+
+ # Flatten and smooth
+ bt_all, ch_all, ac_all = [], [], []
+
+ num_tests = AC_user_tests.shape[0]
+ for t in range(num_tests):
+     bt = pd.DataFrame(BT_user_tests[t]).ewm(span=smooth_span, axis=0).mean().to_numpy().flatten()
+     ch = pd.DataFrame(CH_user_tests[t]).ewm(span=smooth_span, axis=0).mean().to_numpy().flatten()
+     ac = pd.DataFrame(AC_user_tests[t]).ewm(span=smooth_span, axis=0).mean().to_numpy().flatten()
+     bt_all.append(bt)
+     ch_all.append(ch)
+     ac_all.append(ac)
+
+ bt_all = np.concatenate(bt_all)
+ ch_all = np.concatenate(ch_all)
+ ac_all = np.concatenate(ac_all)
+
+ # Define channel thresholds
+ ch_low_th = np.quantile(ch_all, channel_splits[0])
+ ch_high_th = np.quantile(ch_all, channel_splits[1])
+
+ channel_groups = {
+     "Low Channel": ch_all < ch_low_th,
+     "Medium Channel": (ch_all >= ch_low_th) & (ch_all < ch_high_th),
+     "High Channel": ch_all >= ch_high_th
+ }
+
+ # Setup plot
+ plt.figure(figsize=(10, 6))
+
+ colors = {'Low Channel': 'red', 'Medium Channel': 'orange', 'High Channel': 'green'}
+
+ for label, mask in channel_groups.items():
+     bt = bt_all[mask]
+     ac = ac_all[mask]
+
+     # Bin battery
+     bins = np.linspace(np.min(bt), np.max(bt), num_bins + 1)
+     bin_centers = 0.5 * (bins[:-1] + bins[1:])
+     indices = np.digitize(bt, bins) - 1
+
+     medians = []
+     lower_q = []
+     upper_q = []
+     counts = []
+
+     for i in range(num_bins):
+         vals = ac[indices == i]
+         if len(vals) > 0:
+             medians.append(np.nanmedian(vals))
+             lower_q.append(np.nanpercentile(vals, 25))
+             upper_q.append(np.nanpercentile(vals, 75))
+             counts.append(len(vals))
+         else:
+             medians.append(np.nan)
+             lower_q.append(np.nan)
+             upper_q.append(np.nan)
+             counts.append(0)
+
+     medians = np.array(medians)
+     lower_q = np.array(lower_q)
+     upper_q = np.array(upper_q)
+
+     plt.plot(bin_centers, medians, marker='o', label=label, color=colors[label])
+     if show_quantiles:
+         plt.fill_between(bin_centers, lower_q, upper_q, color=colors[label], alpha=0.2)
+
+ plt.xlabel("Battery Level (Smoothed, Binned)")
+ plt.ylabel("Action")
+ plt.title("Action vs Battery (Grouped by Channel Quality)")
+ plt.grid(True)
+ plt.legend()
+ plt.tight_layout()
+ plt.show()
+
+
+ def plot_action_reward_contour(
     CH_user_tests,
     BT_user_tests,
     VAL_user_tests,
@@ -2164,13 +2258,13 @@ def plot_action_reward_contour(
     plt.show()
 
 
-AC_user_tests = load_test_matrix_npy("AC_user_tests", "data Slot 15 User 20 Dist 2")
-AC_user_Mean = load_test_vector_npy("AC_user_Mean", "data Slot 15 User 20 Dist 2")
-CH_user_tests = load_test_matrix_npy("CH_user_tests", "data Slot 15 User 20 Dist 2")
-BT_user_tests = load_test_vector_npy("BT_user_tests", "data Slot 15 User 20 Dist 2")
-REW_user_tests = load_test_matrix_npy("REW_user_tests", "data Slot 15 User 20 Dist 2")
-G_user_tests = load_test_matrix_npy("G_user_tests", "data Slot 15 User 20 Dist 2")
-Ch_Raw_tests = load_test_matrix_npy("Ch_Raw_tests", "data Slot 15 User 20 Dist 2")
+AC_user_tests = load_test_matrix_npy("AC_user_tests", Out_dir)
+AC_user_Mean = load_test_vector_npy("AC_user_Mean", Out_dir)
+CH_user_tests = load_test_matrix_npy("CH_user_tests", Out_dir)
+BT_user_tests = load_test_vector_npy("BT_user_tests", Out_dir)
+REW_user_tests = load_test_matrix_npy("REW_user_tests", Out_dir)
+G_user_tests = load_test_matrix_npy("G_user_tests", Out_dir)
+Ch_Raw_tests = load_test_matrix_npy("Ch_Raw_tests", Out_dir)
 AC_user_avg_test = np.mean(AC_user_tests, axis=1)
 CH_user_avg_test = np.mean(CH_user_tests, axis=1)
 BT_user_avg_test = np.mean(BT_user_tests, axis=1)
@@ -2292,8 +2386,16 @@ plot_testwise_battery_evolution(BT_user_tests, smoothing_window=3)
 
 #plot_aoi_evolution(AOI_test_iter, smoothing_window=1000)
 
-AOI_test_iter_all = load_test_matrix_npy("AOI_test_iter", "data Slot 15 User 20 Dist 2")
+AOI_test_iter_all = load_test_matrix_npy("AOI_test_iter", Out_dir)
 
 #plot_aoi_testwise(AOI_test_iter_all, smoothing_window=30)
 
 plot_final_aoi_per_test(AOI_test_iter_all, smoothing_window=30)
+
+plot_action_vs_battery_grouped_by_channel(
+    BT_user_tests, CH_user_tests, AC_user_tests,
+    smooth_span=50,
+    num_bins=25,
+    channel_splits=(0.33, 0.66),
+    show_quantiles=True
+)
