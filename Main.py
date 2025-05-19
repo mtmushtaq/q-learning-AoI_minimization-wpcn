@@ -35,7 +35,7 @@ test = 300
 learning_rate = 0.0001
 #define system parameters
 mu_bu= 0.05 # one unit of battery
-number_of_slots = 60
+number_of_slots = 35
 number_of_users = 40
 time_duration = 0.02
 p= 4.6
@@ -66,7 +66,7 @@ chg_slots = 80
 k = np.array([0, 1, 2, 3, 4, 5])  # possible power values
 x = np.array([0, 1, 2, 3, 4, 5, 6, 7])  # channel quality information
 a = np.array([0, 1, 2, 3, 4, 5])
-Out_dir  = "S_60_U_40_UP_020"
+Out_dir  = "S_35_U_40_UP_020"
 # S = ((), dtype=float)
 #S = np.zeros((u.size, k.size, x.size), dtype=int)
 
@@ -2665,9 +2665,9 @@ for t in range(test):
 
 #plot_action_vs_battery(CH_user_tests, BT_user_tests, AC_user_tests)
 #plot_reward_vs_action(AC_user_tests, REW_user_tests)
-plot_battery_evolution(BT_user_tests)
+#plot_battery_evolution(BT_user_tests)
 
-plot_avg_battery_evolution(BT_user_tests, [0, 3, 5])
+#plot_avg_battery_evolution(BT_user_tests, [0, 3, 5])
 #plot_battery_delta_over_frames(BT_user_tests)
 
 #plot_action_vs_battery_combined(CH_user_tests, BT_user_tests, AC_user_tests, smooth_span=50, num_bins=20)
@@ -2676,11 +2676,11 @@ plot_avg_battery_evolution(BT_user_tests, [0, 3, 5])
 #plot_user_slot_activity_histograms(slot_aloc_it)
 #plot_idle_slot_trend(idle_slots)
 
-plot_testwise_action_evolution(AC_user_tests, smoothing_window=3)
+#plot_testwise_action_evolution(AC_user_tests, smoothing_window=3)
 
-plot_testwise_reward_evolution(REW_user_tests, smoothing_window=3)
+#plot_testwise_reward_evolution(REW_user_tests, smoothing_window=3)
 
-plot_testwise_battery_evolution(BT_user_tests, smoothing_window=3)
+#plot_testwise_battery_evolution(BT_user_tests, smoothing_window=3)
 
 #plot_aoi_evolution(AOI_test_iter, smoothing_window=1000)
 

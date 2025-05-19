@@ -58,7 +58,7 @@ K_factor =  15
 decay_rate = 0.0005
 upsilon = 0.025 # One unit to transmit one replica
 d_slot = 8
-Out_dir  = "S_60_U_40_UP_020"
+Out_dir  = "S_70_U_40_UP_020"
 #u = np.empty(number_of_users, dtype=object)  # define users array
 #for i in range(number_of_users):
  #   u[i] = i + 1
@@ -2092,168 +2092,81 @@ def plot_final_aoi_per_test(AOI_test, smoothing_window=3):
     plt.tight_layout()
     plt.show()
 
-def plot_action_vs_battery_grouped_by_channel(
-         BT_user_tests, CH_user_tests, AC_user_tests,
-         smooth_span=50,
-         num_bins=20,
-         channel_splits=(0.33, 0.66),
-         show_quantiles=True
-):
- """
- Plot Action vs Battery with grouped channel conditions: Low, Medium, High.
-
- Parameters:
- - BT_user_tests, CH_user_tests, AC_user_tests: shape (tests, iterations, users)
- - smooth_span: smoothing span for EWMA
- - num_bins: number of battery bins
- - channel_splits: tuple with 2 values to split low/medium/high channel thresholds (quantiles)
- - show_quantiles: if True, shows 25–75 percentile bands instead of std
- """
-
- # Flatten and smooth
- bt_all, ch_all, ac_all = [], [], []
-
- num_tests = AC_user_tests.shape[0]
- for t in range(num_tests):
-     bt = pd.DataFrame(BT_user_tests[t]).ewm(span=smooth_span, axis=0).mean().to_numpy().flatten()
-     ch = pd.DataFrame(CH_user_tests[t]).ewm(span=smooth_span, axis=0).mean().to_numpy().flatten()
-     ac = pd.DataFrame(AC_user_tests[t]).ewm(span=smooth_span, axis=0).mean().to_numpy().flatten()
-     bt_all.append(bt)
-     ch_all.append(ch)
-     ac_all.append(ac)
-
- bt_all = np.concatenate(bt_all)
- ch_all = np.concatenate(ch_all)
- ac_all = np.concatenate(ac_all)
-
- # Define channel thresholds
- ch_low_th = np.quantile(ch_all, channel_splits[0])
- ch_high_th = np.quantile(ch_all, channel_splits[1])
-
- channel_groups = {
-     "Low Channel": ch_all < ch_low_th,
-     "Medium Channel": (ch_all >= ch_low_th) & (ch_all < ch_high_th),
-     "High Channel": ch_all >= ch_high_th
- }
-
- # Setup plot
- plt.figure(figsize=(10, 6))
-
- colors = {'Low Channel': 'red', 'Medium Channel': 'orange', 'High Channel': 'green'}
-
- for label, mask in channel_groups.items():
-     bt = bt_all[mask]
-     ac = ac_all[mask]
-
-     # Bin battery
-     bins = np.linspace(np.min(bt), np.max(bt), num_bins + 1)
-     bin_centers = 0.5 * (bins[:-1] + bins[1:])
-     indices = np.digitize(bt, bins) - 1
-
-     medians = []
-     lower_q = []
-     upper_q = []
-     counts = []
-
-     for i in range(num_bins):
-         vals = ac[indices == i]
-         if len(vals) > 0:
-             medians.append(np.nanmedian(vals))
-             lower_q.append(np.nanpercentile(vals, 25))
-             upper_q.append(np.nanpercentile(vals, 75))
-             counts.append(len(vals))
-         else:
-             medians.append(np.nan)
-             lower_q.append(np.nan)
-             upper_q.append(np.nan)
-             counts.append(0)
-
-     medians = np.array(medians)
-     lower_q = np.array(lower_q)
-     upper_q = np.array(upper_q)
-
-     plt.plot(bin_centers, medians, marker='o', label=label, color=colors[label])
-     if show_quantiles:
-         plt.fill_between(bin_centers, lower_q, upper_q, color=colors[label], alpha=0.2)
-
- plt.xlabel("Battery Level (Smoothed, Binned)")
- plt.ylabel("Action")
- plt.title("Action vs Battery (Grouped by Channel Quality)")
- plt.grid(True)
- plt.legend()
- plt.tight_layout()
- plt.show()
-
-
- def plot_action_reward_contour(
-    CH_user_tests,
-    BT_user_tests,
-    VAL_user_tests,
-    mode="testavg",         # 'testwise', 'testavg', 'global'
-    value_label="Action",   # 'Action' or 'Reward'
-    test_idx=0,
+def plot_action_vs_battery_by_discrete_channel(
+    BT_user_tests, CH_user_tests, AC_user_tests,
     smooth_span=50,
-    last_n_iters=None
+    num_bins=20,
+    show_quantiles=True,
+    allowed_channel_grades=range(8)  # From 0 to 7
 ):
     """
-    Plot a contour of Action or Reward vs Channel and Battery
-    across tests, iterations, and users.
+    Plot Action vs Battery grouped by discrete channel grades (0 to 7).
 
     Parameters:
-    - CH_user_tests, BT_user_tests: ndarray (tests, iterations, users)
-    - VAL_user_tests: Action or Reward array (same shape)
-    - mode: 'testwise', 'testavg', 'global'
-    - value_label: 'Action' or 'Reward'
-    - test_idx: used only if mode='testwise'
-    - last_n_iters: limit to last N iterations if not None
+    - BT_user_tests, CH_user_tests, AC_user_tests: arrays (tests, iterations, users)
+    - smooth_span: EWMA smoothing span
+    - num_bins: number of battery bins
+    - show_quantiles: whether to plot 25–75 percentile bands
+    - allowed_channel_grades: list or range of channel categories to include
     """
-    assert mode in ["testwise", "testavg", "global"], "Invalid mode"
 
-    # Select data based on mode
-    if mode == "testwise":
-        ch = CH_user_tests[test_idx]
-        bt = BT_user_tests[test_idx]
-        val = VAL_user_tests[test_idx]
+    bt_all, ch_all, ac_all = [], [], []
+    num_tests = AC_user_tests.shape[0]
 
-    elif mode == "testavg":
-        ch = np.mean(CH_user_tests, axis=0)     # (iterations, users)
-        bt = np.mean(BT_user_tests, axis=0)
-        val = np.mean(VAL_user_tests, axis=0)
+    for t in range(num_tests):
+        bt = pd.DataFrame(BT_user_tests[t]).ewm(span=smooth_span, axis=0).mean().to_numpy().flatten()
+        ch = CH_user_tests[t].flatten().astype(int)  # original discrete channel values
+        ac = pd.DataFrame(AC_user_tests[t]).ewm(span=smooth_span, axis=0).mean().to_numpy().flatten()
 
-    elif mode == "global":
-        ch = CH_user_tests.reshape(-1, CH_user_tests.shape[2])   # (tests*iterations, users)
-        bt = BT_user_tests.reshape(-1, BT_user_tests.shape[2])
-        val = VAL_user_tests.reshape(-1, VAL_user_tests.shape[2])
+        bt_all.append(bt)
+        ch_all.append(ch)
+        ac_all.append(ac)
 
-    # Average over users
-    ch = np.mean(ch, axis=1)
-    bt = np.mean(bt, axis=1)
-    val = np.mean(val, axis=1)
+    bt_all = np.concatenate(bt_all)
+    ch_all = np.concatenate(ch_all)
+    ac_all = np.concatenate(ac_all)
 
-    # Limit to last N iterations
-    if last_n_iters is not None:
-        ch = ch[-last_n_iters:]
-        bt = bt[-last_n_iters:]
-        val = val[-last_n_iters:]
+    # Plot setup
+    plt.figure(figsize=(12, 6))
+    color_map = plt.cm.get_cmap("tab10", len(allowed_channel_grades))
 
-    # Smoothing
-    ch = pd.Series(ch).ewm(span=smooth_span).mean().to_numpy()
-    bt = pd.Series(bt).ewm(span=smooth_span).mean().to_numpy()
-    val = pd.Series(val).ewm(span=smooth_span).mean().to_numpy()
+    for i, grade in enumerate(allowed_channel_grades):
+        mask = (ch_all == grade)
+        if not np.any(mask):
+            continue
 
-    # Grid
-    xi = np.linspace(min(ch), max(ch), 100)
-    yi = np.linspace(min(bt), max(bt), 100)
-    Xi, Yi = np.meshgrid(xi, yi)
-    zi = griddata((ch, bt), val, (Xi, Yi), method='cubic')
+        bt = bt_all[mask]
+        ac = ac_all[mask]
 
-    # Plot
-    fig, ax = plt.subplots(figsize=(6, 5))
-    cs = ax.contourf(Xi, Yi, zi, levels=20, cmap='viridis' if value_label == "Action" else 'plasma')
-    fig.colorbar(cs, ax=ax, label=value_label)
-    ax.set_xlabel("Channel (Avg over Users, Smoothed)")
-    ax.set_ylabel("Battery (Avg over Users, Smoothed)")
-    ax.set_title(f"{value_label} Contour - Mode: {mode}")
+        # Battery binning
+        bins = np.linspace(bt.min(), bt.max(), num_bins + 1)
+        bin_centers = 0.5 * (bins[:-1] + bins[1:])
+        indices = np.digitize(bt, bins) - 1
+
+        medians, lower_q, upper_q = [], [], []
+
+        for b in range(num_bins):
+            vals = ac[indices == b]
+            if len(vals) > 0:
+                medians.append(np.nanmedian(vals))
+                lower_q.append(np.nanpercentile(vals, 25))
+                upper_q.append(np.nanpercentile(vals, 75))
+            else:
+                medians.append(np.nan)
+                lower_q.append(np.nan)
+                upper_q.append(np.nan)
+
+        # Plot
+        color = color_map(i)
+        plt.plot(bin_centers, medians, label=f'Channel Grade {grade}', marker='o', color=color)
+        if show_quantiles:
+            plt.fill_between(bin_centers, lower_q, upper_q, color=color, alpha=0.2)
+
+    plt.xlabel("Battery Level (Smoothed, Binned)")
+    plt.ylabel("Action")
+    plt.title("Action vs Battery by Discrete Channel Grade")
+    plt.legend(title="Channel Grade", ncol=4)
+    plt.grid(True)
     plt.tight_layout()
     plt.show()
 
@@ -2392,10 +2305,10 @@ AOI_test_iter_all = load_test_matrix_npy("AOI_test_iter", Out_dir)
 
 plot_final_aoi_per_test(AOI_test_iter_all, smoothing_window=30)
 
-plot_action_vs_battery_grouped_by_channel(
+plot_action_vs_battery_by_discrete_channel(
     BT_user_tests, CH_user_tests, AC_user_tests,
     smooth_span=50,
     num_bins=25,
-    channel_splits=(0.33, 0.66),
-    show_quantiles=True
+    show_quantiles=True,
+    allowed_channel_grades=range(8)  # 0 to 7
 )
