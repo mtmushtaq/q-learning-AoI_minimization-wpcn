@@ -15,7 +15,7 @@ store_dirs = [
     "S_90_U_40_UP_020", "S_100_U_40_UP_020"
 ]
 
-def plot_gain_vs_aaoi_from_dirs(store_dirs, gains, label="IL", color="blue"):
+def plot_gain_vs_aaoi_from_dirs(store_dirs, gains, label="IL", color="blue", output_file="IL_gain_vs_aaoi.pdf"):
     """
     Plot Gain vs Final AAoI using provided folders and gains.
     - store_dirs: list of folder paths (same order as slots/gains)
@@ -25,28 +25,40 @@ def plot_gain_vs_aaoi_from_dirs(store_dirs, gains, label="IL", color="blue"):
 
     for folder in store_dirs:
         try:
-            aoi_test = load_test_matrix_npy("AOI_test_iter", folder)  # shape: (tests, users)
+            aoi_test = load_test_matrix_npy("AOI_test", folder)  # shape: (tests, users)
             last_test_mean = np.mean(aoi_test[-1, :])            # mean over users in final test
             final_aaoi.append(last_test_mean)
         except Exception as e:
             print(f"⚠️ Failed to load AOI from {folder}: {e}")
             final_aaoi.append(np.nan)
 
-    # Sort by gain (just in case)
+    # Clean & sort data
     sorted_data = sorted(zip(gains, final_aaoi))
     sorted_gains, sorted_aaoi = zip(*sorted_data)
 
     # Plot
-    plt.figure(figsize=(8, 5))
-    plt.plot(sorted_gains, sorted_aaoi, marker='o', color=color, label=label)
-    plt.xlabel("Gain (Users / Slots)")
-    plt.ylabel("Final Average AoI")
-    plt.title(f"{label} — Gain vs Final Average AoI")
-    plt.grid(True)
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(f"{label}_gain_vs_aaoi.pdf", bbox_inches='tight')
-    plt.show()
+    plt.figure(figsize=(8, 5), dpi=300)  # High DPI for clarity in PDF
+    plt.plot(
+        sorted_gains,
+        sorted_aaoi,
+        marker='o',
+        markersize=8,
+        color=color,
+        linestyle='--',
+        linewidth=2,
+        label=label
+    )
 
+    # Styling
+    plt.xlabel(r"Normalized Channel Traffic $G = \frac{M}{N}$", fontsize=12)
+    plt.ylabel(r"Final Average AoI $\bar{A}$", fontsize=12)
+    plt.title(r"{label} — Gain ($G$) vs Average AoI ($ \bar{A}$)", fontsize=13, weight='bold')
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.xticks(fontsize=11)
+    plt.yticks(fontsize=11)
+    plt.legend(fontsize=11)
+    plt.tight_layout()
+    plt.savefig(output_file, format='pdf', bbox_inches='tight')
+    plt.show()
 # Call the function
 plot_gain_vs_aaoi_from_dirs(store_dirs, gains, label="IL", color="blue")
