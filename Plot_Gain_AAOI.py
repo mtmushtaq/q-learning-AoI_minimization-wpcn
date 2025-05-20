@@ -7,6 +7,10 @@ users = 40
 slots = [20, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100]
 gains_IL = [round(users / s, 3) for s in slots]
 
+users_JAL = 24
+slots_JAL = [12, 18, 27, 34, 48, 54, 60]
+gains_JAL = [round(users_JAL / s, 3) for s in slots_JAL]
+
 # Corresponding folders (must match slot order)
 store_dirs_IL = [
     "S_20_U_40_UP_020", "S_30_U_40_UP_020", "S_35_U_40_UP_020",
@@ -74,7 +78,7 @@ def plot_gain_vs_aaoi_comparison(
         aaoi_list = []
         for folder in store_dirs:
             try:
-                aoi_test = load_test_matrix_npy("AOI_test", folder)
+                aoi_test = load_test_matrix_npy("AOI_test_iter", folder)
                 last_test_mean = np.mean(aoi_test[-1, :])
                 aaoi_list.append(last_test_mean)
             except Exception as e:
@@ -91,26 +95,33 @@ def plot_gain_vs_aaoi_comparison(
     data_JAL = sorted(zip(gains_JAL, aaoi_JAL))
     sorted_gains_IL, sorted_aaoi_IL = zip(*data_IL)
     sorted_gains_JAL, sorted_aaoi_JAL = zip(*data_JAL)
+    # Convert to arrays
+    sorted_aaoi_IL = np.array(sorted_aaoi_IL)
+    sorted_aaoi_JAL = np.array(sorted_aaoi_JAL)
+
+    # Normalize by user count
+    normalized_aaoi_IL = sorted_aaoi_IL / users
+    normalized_aaoi_JAL = sorted_aaoi_JAL / users_JAL
 
     # Plot
     plt.figure(figsize=(8, 5), dpi=300)
 
     # IL Line
-    plt.plot(sorted_gains_IL, sorted_aaoi_IL,
+    plt.plot(sorted_gains_IL, normalized_aaoi_IL,
              marker='o', markersize=8,
              color='blue', linestyle='--', linewidth=2,
              label='IL')
 
     # JAL Line
-    plt.plot(sorted_gains_JAL, sorted_aaoi_JAL,
+    plt.plot(sorted_gains_JAL, normalized_aaoi_JAL,
              marker='s', markersize=8,
              color='darkorange', linestyle='-', linewidth=2,
              label='JAL')
 
     # Axis Labels & Styling
-    plt.xlabel(r"Normalized Channel Traffic $G = \frac{M}{N}$", fontsize=12)
-    plt.ylabel(r"Final Average AoI $\bar{A}$", fontsize=12)
-    plt.title(r"Comparison of IL and JAL — Gain vs Final Average AoI", fontsize=13, weight='bold')
+    plt.xlabel(r"Normalized Channel Traffic $G$", fontsize=12)
+    plt.ylabel(r"Normalized Average AoI $\bar{A}_{norm}$", fontsize=12)
+    plt.title(r"Comparison of IL and JAL", fontsize=13, weight='bold')
     plt.grid(True, linestyle='--', alpha=0.6)
     plt.xticks(fontsize=11)
     plt.yticks(fontsize=11)
@@ -122,14 +133,10 @@ def plot_gain_vs_aaoi_comparison(
 
 
 # Call the function
-plot_gain_vs_aaoi_from_dirs(store_dirs_IL, gains, label="IL", color="blue")
-
-users_JAL = 24
-slots_JAL = [18, 27, 34, 48, 54, 60]
-gains_JAL = [round(users_JAL / s, 3) for s in slots_JAL]
+plot_gain_vs_aaoi_from_dirs(store_dirs_IL, gains_IL, label="IL", color="blue")
 
 store_dirs_JAL = [
-    "JAL_S_18_U_24", "JAL_S_27_U_24", "JAL_S_34_U_24", "JAL_S_48_U_24", "JAL_S_54_U_24", "JAL_S_60_U_24" ]
+    "JAL_S_12_U_24", "JAL_S_18_U_24", "JAL_S_27_U_24", "JAL_S_34_U_24", "JAL_S_48_U_24", "JAL_S_54_U_24", "JAL_S_60_U_24" ]
 
 # Call the function for JAL
 plot_gain_vs_aaoi_from_dirs(store_dirs_JAL, gains_JAL, label="JAL", color="orange", output_file="JAL_gain_vs_aaoi.pdf")
