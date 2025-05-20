@@ -2,6 +2,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import re
+from data_npy_io import *
 
 users = 40
 slots = [20, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100]
