@@ -35,8 +35,8 @@ test = 3
 learning_rate = 0.001
 #define system parameters
 mu_bu= 0.05 # one unit of battery
-number_of_slots = 20
-number_of_users = 15
+number_of_slots = 4
+number_of_users = 2
 time_duration = 0.025
 p= 4.6
 dist_min = 1
@@ -58,7 +58,7 @@ K_factor =  15
 decay_rate = 0.0005
 upsilon = 0.025 # One unit to transmit one replica
 d_slot = 8
-Out_dir  = "S_70_U_40_UP_020"
+Out_dir  = "Random_S_40_U_20_UP2"
 #u = np.empty(number_of_users, dtype=object)  # define users array
 #for i in range(number_of_users):
  #   u[i] = i + 1
