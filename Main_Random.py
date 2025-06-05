@@ -31,16 +31,16 @@ from mpl_toolkits.mplot3d import Axes3D
 # This code with an optimized Learning rate= 0.5, But we need to find the value of Epsilon for good convergence
 # define training parameters
 discount_factor = 0.99  # 0.001
-test = 300
-learning_rate = 0.0001
+test = 200
+learning_rate = 0.0002
 #define system parameters
-mu_bu= 0.05 # one unit of battery
-number_of_slots = 45
-number_of_users = 40
+mu_bu= 0.05 # initial one unit of battery
+number_of_slots = 50
+number_of_users = 20
 time_duration = 0.02
 p= 4.6
 dist_min = 1
-dist_max = 7
+dist_max = 8
 s_AAOI = []
 Gain = []
 Th= 0.2
@@ -55,8 +55,8 @@ exploit_count = []
 explore = 0
 exploit = 0
 K_factor =  12
-decay_rate = 0.0005
-upsilon = 0.020 # One unit to transmit one replica
+decay_rate = 0.0009
+upsilon = 0.02 # One unit to transmit one replica
 d_slot = 1
 chg_slots = 80
 #u = np.empty(number_of_users, dtype=object)  # define users array
@@ -66,7 +66,7 @@ chg_slots = 80
 k = np.array([0, 1, 2, 3, 4, 5])  # possible power values
 x = np.array([0, 1, 2, 3, 4, 5, 6, 7])  # channel quality information
 a = np.array([0, 1, 2, 3, 4, 5])
-Out_dir  = "2_T_S_45_U_40_UP_020"
+Out_dir  = "Random_S_50_U_20_UP2"
 # S = ((), dtype=float)
 #S = np.zeros((u.size, k.size, x.size), dtype=int)
 
@@ -2263,88 +2263,51 @@ for t in range(1, test+1):
 
             #EH_Raw [u] = compute_energy_harvested(G_Raw, time_duration, p)
             #users[u] =
-        for d in range (np.size(users)):
+        randx = np.random.random()
+        randx = round(randx, 5)
+        #if randx <= epsilon:  # Random Action Selection
+        #    explore += 1
+        for d in range (np.size(users)):  # Random Action Selection
             CH_Raw[d] = generate_rician_fading(K_factor)
             users[d].channel = CH_Raw[d]
             G_Raw[d] = gamma_EH(CH_Raw[d], dist[d]) #dist_min, dist_max)
             BT_Dis[d] = users[d].BT_units()
             CH_Dis [d] = get_channel(G_Raw[d])
-            randx = np.random.random()
-            randx = round(randx, 5)
-            if randx <= epsilon: #Random Action Selection
-                explore += 1
-
-                bt_units = users[d].BT_units()
-                if bt_units > number_of_slots:
-                    bt_units = number_of_slots
-                prob_dist = get_distr(bt_units)
-                if bt_units == 0:
-                    slot_aloc_f [d,:] = np.zeros ((1, number_of_slots), dtype=int)
-                    AC_users [d] = 0
-                    #print(f"Random Action of User {d} is {0}")
-                else:
-                    range_slot = np.array(range(0, number_of_slots), dtype=int) # to ask it to make a choice between first and last slot
-                    range_action = np.array(range(1, len(prob_dist)+1), dtype=int) # to choose an action between 1 and max_battery unit with prob_dist
-                    user_action = np.random.choice(range_action, size=1, p=prob_dist) # choose an action based on prob_dist
-                    if user_action > a.size:
-                        user_action  = a.size
-                    slot_indices = np.random.choice(range_slot, size=user_action, replace=False) #choose random slots to send the packet
-                    slot_aloc_f[d, slot_indices] = 1  #Make selected slots 1 for user's row
-                    users[d].decrease_EH(user_action)
-                    BT_Dis[d] = users[d].BT_units()
-                    AC_users[d] = user_action[0]
-                    #print(f"Random Action of User {d} is {user_action}")
-                #slot_aloc_f [d-1, :]
-                #reward[d][it_ind] = get_rew(action)
-                #Remove action unit of energy from total energy
-                #EH_Raw[d, it_ind] = get_dis_AT (EH_Raw[d-1, 0], action, mu_bu)
-                # print(f"Explore")
-
-                # print(f"d: {d}")
-                # print(f"User {d} has state : {S[d-1]}")
+            bt_units = users[d].BT_units()
+            if bt_units > number_of_slots:
+                bt_units = number_of_slots
+            prob_dist = get_distr(bt_units)
+            if bt_units == 0:
+                slot_aloc_f [d,:] = np.zeros ((1, number_of_slots), dtype=int)
+                AC_users [d] = 0
+                #print(f"Random Action of User {d} is {0}")
             else:
-                # do the max action from Q table
-                # value = q_tables[d - 1][current_row][0:(pw+1)].max()
-                # values[d] = value
-                # index = np.where(q_tables[d + 1][current_row][0:(pw+1)] == value)
-                # action = a[index].max()
-                # actions[d] = action
-                exploit += 1
-                #### Before going into explore or exploit factor, calculate the energy harvested, Channel, Current battery and other factor of each user.
+                range_slot = np.array(range(0, number_of_slots), dtype=int) # to ask it to make a choice between first and last slot
+                range_action = np.array(range(1, len(prob_dist)+1), dtype=int) # to choose an action between 1 and max_battery unit with prob_dist
+                user_action = np.random.choice(range_action, size=1, p=prob_dist) # choose an action based on prob_dist
+                if user_action > a.size:
+                    user_action  = a.size
+                slot_indices = np.random.choice(range_slot, size=user_action, replace=False) #choose random slots to send the packet
+                slot_aloc_f[d, slot_indices] = 1  #Make selected slots 1 for user's row
+                users[d].decrease_EH(user_action)
+                BT_Dis[d] = users[d].BT_units()
+                AC_users[d] = user_action[0]
+                #print(f"Random Action of User {d} is {user_action}")
+            #slot_aloc_f [d-1, :]
+            #reward[d][it_ind] = get_rew(action)
+            #Remove action unit of energy from total energy
+            #EH_Raw[d, it_ind] = get_dis_AT (EH_Raw[d-1, 0], action, mu_bu)
+            # print(f"Explore")
 
-                row_act = get_row(BT_Dis[d], CH_Dis[d])
-                #print(f"Power from State: {S[0][0]}")
-                #print(f"Channel from State: {S[0][1]}")
-                #print(f"Action Row {row_act}")
-                value = q_tables[d][row_act][:].max()
-                #print(f"Max Q table for PW: {S[0][0]} and Ch {S[0][1]} of user {d}: {value}")
-                # values[d] = value
-                index = np.where(q_tables[d][row_act][:] == value)
-                #print(f"Index: {index}")
-                #print(f"Action Vector: {a}")
-                #action = int(a[index])
-                action = a[index][0].item()  # Extract the first element as a pure integer
-                #print(f"Q-Max Action of User {d} is {action}")
-                if action == 0:
-                    slot_aloc_f [d,:] = np.zeros ((1, number_of_slots), dtype=int)
-                else:
-                    if action > number_of_slots:
-                        action = number_of_slots
-                    if action > a.size:
-                        action  = a.size
-                    if action > BT_Dis[d]:
-                        action= BT_Dis[d]
-                    ind_u = np.random.choice(number_of_slots , size= action, replace=False) #rd.sample(range(number_of_slots), action)
-                    slot_aloc_f[d , ind_u] = 1
-                    users[d].decrease_EH(action) #update battery
-                    BT_Dis[d] = users[d].BT_units()
-                AC_users[d] = action
+            # print(f"d: {d}")
+            # print(f"User {d} has state : {S[d-1]}")
+
                 #print(f"take action: {action}")
                 #reward[d][it_ind] = get_rew(action)
                 # Remove action unit of energy from total energy
                 #EH_Raw[d, it_ind] = get_dis_AT(EH_Raw[d - 1, 0], action, mu_bu)
-            #Get NEXT STATE
-            #d = d + 1
+                #Get NEXT STATE
+                #d = d + 1
         #use free slots for energy harvesting
         for i in range(number_of_slots):
             if np.sum(slot_aloc_f[:, i]) == 0:
@@ -2391,23 +2354,6 @@ for t in range(1, test+1):
             AOI_cumsum += Af_aoi  # assuming Af_aoi is the AoI at this iteration
             AOI_test_iter[it_ind, :] = AOI_cumsum / (it_ind + 1)
             #AOI_test_iter [t-1, it_ind, :] = (AOI_test_iter [t-1, it_ind-1, :] + AOI_test_iter [t-1, it_ind, :])/it_ind
-        if (it_ind + 1) % Batch_size == 0:
-            # Get new State and update Q-Table
-            dist = np.random.uniform(dist_min, dist_max, size=number_of_users)
-            BT_Dis_next = np.empty(number_of_users, dtype=int)  # to save discrete battery capacity of all users at current iteration/frame
-            CH_Raw_next = np.empty(number_of_users, dtype=complex)  # to save raw channel gamma of all users at current iteration/frame
-            CH_Dis_next = np.empty(number_of_users, dtype=int)  # to save discrete channel gamma of all users at current iteration/frame
-            G_Raw_next = np.empty(number_of_users, dtype=float)  # to save Gamma of current frame
-            for u in range(number_of_users):
-                CH_Raw_next[u] = generate_rician_fading(K_factor)
-                users[u].channel = CH_Raw_next[u]
-                G_Raw_next[u] = gamma_EH(CH_Raw_next[u], dist[u]) #dist_min, dist_max)
-                BT_Dis_next[u] = users[u].BT_units()
-                CH_Dis_next[u] = get_channel(G_Raw[u])
-                row_act = get_row(BT_Dis_next[u], CH_Dis_next[u])
-                best_next_action_value = q_tables[u][row_act][:].max()
-                temporal_difference = Rew_U[u] + discount_factor * best_next_action_value - q_tables[u, row_act, AC_users[u]]
-                q_tables[u, row_act, AC_users[u]] += learning_rate * temporal_difference
 
         #Collect Data
         AC_user_f [it_ind, :] = AC_users
@@ -2469,7 +2415,7 @@ for t in range(1, test+1):
     #if t % chg_slots == 0:
      #   number_of_slots -= d_slot
       #  print(f"Slots Changed at test {t}: {number_of_slots}")
-    #min_epsilon += 0.05
+    min_epsilon += 0.05
     #number_of_users += 1
     #dist_max += 0.03
     #K_factor -= 0.01
