@@ -31,13 +31,13 @@ from mpl_toolkits.mplot3d import Axes3D
 # This code with an optimized Learning rate= 0.5, But we need to find the value of Epsilon for good convergence
 # define training parameters
 discount_factor = 0.99  # 0.001
-test = 100
-learning_rate = 0.0002
+test = 200
+learning_rate = 0.0001
 #define system parameters
 mu_bu= 0.05 # initial one unit of battery
-number_of_slots = 20
-number_of_users = 40
-time_duration = 0.02
+number_of_slots = 40
+number_of_users = 70
+time_duration = 0.03
 p= 4.6
 dist_min = 1
 dist_max = 8
@@ -66,7 +66,7 @@ chg_slots = 80
 k = np.array([0, 1, 2, 3, 4, 5])  # possible power values
 x = np.array([0, 1, 2, 3, 4, 5, 6, 7])  # channel quality information
 a = np.array([0, 1, 2, 3, 4, 5])
-Out_dir  = "T2JAL_S_20_U_40_UP2"
+Out_dir  = "JAL_S_70_U_40_BT003"
 # S = ((), dtype=float)
 #S = np.zeros((u.size, k.size, x.size), dtype=int)
 

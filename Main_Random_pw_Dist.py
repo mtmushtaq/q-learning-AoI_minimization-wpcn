@@ -31,16 +31,16 @@ from mpl_toolkits.mplot3d import Axes3D
 # This code with an optimized Learning rate= 0.5, But we need to find the value of Epsilon for good convergence
 # define training parameters
 discount_factor = 0.99  # 0.001
-test = 3
-learning_rate = 0.001
+test = 200
+learning_rate = 0.0002
 #define system parameters
-mu_bu= 0.05 # one unit of battery
-number_of_slots = 4
-number_of_users = 2
-time_duration = 0.025
+mu_bu= 0.05 # initial one unit of battery
+number_of_slots = 10
+number_of_users = 20
+time_duration = 0.02
 p= 4.6
 dist_min = 1
-dist_max = 7
+dist_max = 8
 s_AAOI = []
 Gain = []
 Th= 0.2
@@ -54,11 +54,11 @@ explore_count = []
 exploit_count = []
 explore = 0
 exploit = 0
-K_factor =  15
-decay_rate = 0.0005
-upsilon = 0.025 # One unit to transmit one replica
-d_slot = 8
-Out_dir  = "S_50_U_40_BT_004_K12"
+K_factor =  12
+decay_rate = 0.0009
+upsilon = 0.02 # One unit to transmit one replica
+d_slot = 1
+chg_slots = 80
 #u = np.empty(number_of_users, dtype=object)  # define users array
 #for i in range(number_of_users):
  #   u[i] = i + 1
@@ -66,7 +66,7 @@ Out_dir  = "S_50_U_40_BT_004_K12"
 k = np.array([0, 1, 2, 3, 4, 5])  # possible power values
 x = np.array([0, 1, 2, 3, 4, 5, 6, 7])  # channel quality information
 a = np.array([0, 1, 2, 3, 4, 5])
-
+Out_dir  = "Dist_S_10_U_20_UP2"
 # S = ((), dtype=float)
 #S = np.zeros((u.size, k.size, x.size), dtype=int)
 
@@ -261,19 +261,16 @@ def get_distr(pw):
         return distr
     elif pw == 2:
         distr = np.array([0.75, 0.25])
-        #distr = np.array([0.5, 0.5])
         return distr
     elif pw == 3:
         distr = np.array([0.7, 0.2, 0.1])
-        #distr = np.array([0.34, 0.33, 0.33])
         return distr
     elif pw == 4:
         distr = np.array([0.625, 0.2083, 0.1042, 0.0625])
-        #distr = np.array([0.25, 0.25, 0.25, 0.25])
         return distr
     elif pw == 5:
-        distr = np.array([0.6, 0.2, 0.1, 0.06, 0.04])
-        #distr = np.array([0.2, 0.2, 0.2, 0.2, 0.2])
+        distr = np.array([0.2, 0.2, 0.3, 0.2, 0.1])
+        # distr = np.array([0.6, 0.2, 0.1, 0.06, 0.04])
         return distr
     return distr
 
@@ -2092,83 +2089,392 @@ def plot_final_aoi_per_test(AOI_test, smoothing_window=3):
     plt.tight_layout()
     plt.show()
 
-def plot_action_vs_battery_by_discrete_channel(
-    BT_user_tests, CH_user_tests, AC_user_tests,
+def plot_action_reward_contour(
+    CH_user_tests,
+    BT_user_tests,
+    VAL_user_tests,
+    mode="testavg",         # 'testwise', 'testavg', 'global'
+    value_label="Action",   # 'Action' or 'Reward'
+    test_idx=0,
     smooth_span=50,
-    num_bins=20,
-    show_quantiles=True,
-    allowed_channel_grades=range(8)  # From 0 to 7
+    last_n_iters=None
 ):
     """
-    Plot Action vs Battery grouped by discrete channel grades (0 to 7).
+    Plot a contour of Action or Reward vs Channel and Battery
+    across tests, iterations, and users.
 
     Parameters:
-    - BT_user_tests, CH_user_tests, AC_user_tests: arrays (tests, iterations, users)
-    - smooth_span: EWMA smoothing span
-    - num_bins: number of battery bins
-    - show_quantiles: whether to plot 25–75 percentile bands
-    - allowed_channel_grades: list or range of channel categories to include
+    - CH_user_tests, BT_user_tests: ndarray (tests, iterations, users)
+    - VAL_user_tests: Action or Reward array (same shape)
+    - mode: 'testwise', 'testavg', 'global'
+    - value_label: 'Action' or 'Reward'
+    - test_idx: used only if mode='testwise'
+    - last_n_iters: limit to last N iterations if not None
     """
+    assert mode in ["testwise", "testavg", "global"], "Invalid mode"
 
-    bt_all, ch_all, ac_all = [], [], []
-    num_tests = AC_user_tests.shape[0]
+    # Select data based on mode
+    if mode == "testwise":
+        ch = CH_user_tests[test_idx]
+        bt = BT_user_tests[test_idx]
+        val = VAL_user_tests[test_idx]
 
-    for t in range(num_tests):
-        bt = pd.DataFrame(BT_user_tests[t]).ewm(span=smooth_span, axis=0).mean().to_numpy().flatten()
-        ch = CH_user_tests[t].flatten().astype(int)  # original discrete channel values
-        ac = pd.DataFrame(AC_user_tests[t]).ewm(span=smooth_span, axis=0).mean().to_numpy().flatten()
+    elif mode == "testavg":
+        ch = np.mean(CH_user_tests, axis=0)     # (iterations, users)
+        bt = np.mean(BT_user_tests, axis=0)
+        val = np.mean(VAL_user_tests, axis=0)
 
-        bt_all.append(bt)
-        ch_all.append(ch)
-        ac_all.append(ac)
+    elif mode == "global":
+        ch = CH_user_tests.reshape(-1, CH_user_tests.shape[2])   # (tests*iterations, users)
+        bt = BT_user_tests.reshape(-1, BT_user_tests.shape[2])
+        val = VAL_user_tests.reshape(-1, VAL_user_tests.shape[2])
 
-    bt_all = np.concatenate(bt_all)
-    ch_all = np.concatenate(ch_all)
-    ac_all = np.concatenate(ac_all)
+    # Average over users
+    ch = np.mean(ch, axis=1)
+    bt = np.mean(bt, axis=1)
+    val = np.mean(val, axis=1)
 
-    # Plot setup
-    plt.figure(figsize=(12, 6))
-    color_map = plt.cm.get_cmap("tab10", len(allowed_channel_grades))
+    # Limit to last N iterations
+    if last_n_iters is not None:
+        ch = ch[-last_n_iters:]
+        bt = bt[-last_n_iters:]
+        val = val[-last_n_iters:]
 
-    for i, grade in enumerate(allowed_channel_grades):
-        mask = (ch_all == grade)
-        if not np.any(mask):
-            continue
+    # Smoothing
+    ch = pd.Series(ch).ewm(span=smooth_span).mean().to_numpy()
+    bt = pd.Series(bt).ewm(span=smooth_span).mean().to_numpy()
+    val = pd.Series(val).ewm(span=smooth_span).mean().to_numpy()
 
-        bt = bt_all[mask]
-        ac = ac_all[mask]
+    # Grid
+    xi = np.linspace(min(ch), max(ch), 100)
+    yi = np.linspace(min(bt), max(bt), 100)
+    Xi, Yi = np.meshgrid(xi, yi)
+    zi = griddata((ch, bt), val, (Xi, Yi), method='cubic')
 
-        # Battery binning
-        bins = np.linspace(bt.min(), bt.max(), num_bins + 1)
-        bin_centers = 0.5 * (bins[:-1] + bins[1:])
-        indices = np.digitize(bt, bins) - 1
-
-        medians, lower_q, upper_q = [], [], []
-
-        for b in range(num_bins):
-            vals = ac[indices == b]
-            if len(vals) > 0:
-                medians.append(np.nanmedian(vals))
-                lower_q.append(np.nanpercentile(vals, 25))
-                upper_q.append(np.nanpercentile(vals, 75))
-            else:
-                medians.append(np.nan)
-                lower_q.append(np.nan)
-                upper_q.append(np.nan)
-
-        # Plot
-        color = color_map(i)
-        plt.plot(bin_centers, medians, label=f'Channel Grade {grade}', marker='o', color=color)
-        if show_quantiles:
-            plt.fill_between(bin_centers, lower_q, upper_q, color=color, alpha=0.2)
-
-    plt.xlabel("Battery Level (Smoothed, Binned)")
-    plt.ylabel("Action")
-    plt.title("Action vs Battery by Discrete Channel Grade")
-    plt.legend(title="Channel Grade", ncol=4)
-    plt.grid(True)
+    # Plot
+    fig, ax = plt.subplots(figsize=(6, 5))
+    cs = ax.contourf(Xi, Yi, zi, levels=20, cmap='viridis' if value_label == "Action" else 'plasma')
+    fig.colorbar(cs, ax=ax, label=value_label)
+    ax.set_xlabel("Channel (Avg over Users, Smoothed)")
+    ax.set_ylabel("Battery (Avg over Users, Smoothed)")
+    ax.set_title(f"{value_label} Contour - Mode: {mode}")
     plt.tight_layout()
     plt.show()
+
+
+## Command to randomly pick values----->>>>> np.random.randint(0, 7, size=(k.size * x.size, a.size), dtype=int)
+#reward = np.empty((number_of_users, iterations+1), dtype=float)
+#AOI = np.zeros((number_of_users, iterations+1), dtype=int)
+
+#discount_factor = 0.9
+#learning_rate = 0.001
+# step_size_ep= (1-0.4)/iterations
+
+users = []
+for i in range(number_of_users):  # popola il vettore degli utenti
+    # users[i] = i + 1
+    users.append(User(id=i, mu=upsilon, initial_battery_level=0.05))  # inizializza ogni utente con un livello di batteria di 0.005
+
+q_tables = np.empty([number_of_users, k.size * x.size, a.size], dtype=float)
+for user in range(np.size(users)):
+    q_tables[user, :, :] = np.random.rand(k.size * x.size, a.size)
+#print(f"first Q Table {q_tables}")
+
+AOI_users = np.ones((iterations*test, number_of_users), dtype=int)
+AOI_users_tests = np.empty((test, iterations,number_of_users), dtype=int)
+#print(q_tables)
+# print(f"All State matrix {S}")
+G = np.empty(test, dtype = float)
+
+
+epsilon_t = np.zeros((test, iterations), dtype=float)
+#AOI_test_iter = np.ones((test, iterations, number_of_users), dtype=float)
+AOI_test = np.ones((test, number_of_users), dtype=float)
+
+AC_user_tests_all = []
+CH_user_tests_all = []
+BT_user_tests_all = []
+REW_user_tests_all = []
+G_user_tests_all = []
+Ch_Raw_tests_all = []
+
+AC_user_mean_all = []
+CH_mean_all = []
+Battery_mean_all = []
+Rew_u_mean_all = []
+AOI_test_iter_all = []  # Holds all tests' (iterations × users) AoI
+
+#slot_aloc_test = []  # List of (users × slots) matrices
+for t in range(1, test+1):
+    #AC_user_Mean = np.empty((iterations), dtype=float)
+    #CH_mean = np.empty((iterations), dtype=float)
+    #Battery_mean = np.empty((iterations), dtype=float)
+    #Rew_u_mean = np.empty((iterations), dtype=float)
+    #AC_user_tests = np.empty((iterations, number_of_users), dtype=float)
+    #CH_user_tests = np.empty((iterations, number_of_users), dtype=float)
+    #BT_user_tests = np.empty((iterations, number_of_users), dtype=float)
+    #REW_user_tests = np.empty((iterations, number_of_users), dtype=float)
+    #G_user_tests = np.empty((iterations, number_of_users), dtype=float)
+    #Ch_Raw_tests = np.empty((iterations, number_of_users), dtype=float)
+    slot_aloc_test = np.zeros((number_of_users), dtype=float)
+    idle_slots = np.zeros(iterations, dtype=int)
+    slot_aloc_it = np.zeros((iterations, np.size(users), number_of_slots), dtype=int)
+    min_epsilon = 0.3
+    max_epsilon = 0.9
+    reward = np.empty((number_of_users, iterations + 1), dtype=float)
+    AOI = np.zeros((number_of_users, iterations + 1), dtype=int)
+    AOI_af= np.ones(number_of_users, dtype=int)
+    #users = []
+    #for i in range(number_of_users):  # popola il vettore degli utenti
+        # users[i] = i + 1
+     #   users.append(User(id=i, mu=upsilon,initial_battery_level=0.05))  # inizializza ogni utente con un livello di batteria di 0.005
+    Battery_f = np.empty((iterations, number_of_users), dtype=float)  # To save state of all users in current frame
+    Ch_f = np.empty((iterations, number_of_users), dtype=float)
+    AC_user_f = np.empty((iterations, number_of_users), dtype=int)
+    Rew_u_f = np.empty((iterations, number_of_users), dtype=float)
+    G_Raw_f = np.empty((iterations, number_of_users), dtype=float)
+    CH_raw_f = np.empty((iterations, number_of_users), dtype=float)
+    dist = np.random.uniform(dist_min, dist_max, size= number_of_users)
+    AOI_cumsum = np.zeros((number_of_users,), dtype=float)
+    AOI_test_iter = np.zeros((iterations, number_of_users), dtype=float)
+    #q_tables = np.empty([number_of_users, k.size * x.size, a.size], dtype=float)
+    #for user in range(np.size(users)):
+     #   q_tables[user, :, :] = np.random.rand(k.size * x.size, a.size)
+    for it_ind in range(0, iterations):
+        #print(f"Iteration: {it_ind}")
+        epsilon = min_epsilon + (max_epsilon - min_epsilon) * np.exp(-decay_rate * it_ind)
+        epsilon = round(epsilon, 5)
+        epsilon_t[t-1, it_ind] = epsilon
+        slot_aloc_f = np.zeros ((np.size(users), number_of_slots), dtype=int)
+        S = np.empty((number_of_users, 1, 2), dtype=float)  # To save state of all users in current frame
+        EH_Raw = np.empty(number_of_users, dtype=float)  # to save raw battery capacity of all users at current iteration/frame
+        #EH_Raw[:, 0] = EH_Raw[:, 0] + 0.05
+        BT_Dis = np.empty(number_of_users, dtype=int)  # to save discrete battery capacity of all users at current iteration/frame
+        CH_Raw = np.empty(number_of_users, dtype=complex)  # to save raw channel gamma of all users at current iteration/frame
+        CH_Dis = np.empty(number_of_users, dtype=int)  # to save discrete channel gamma of all users at current iteration/frame
+        G_Raw = np.empty(number_of_users, dtype=float) # to save Gamma of current frame
+        AC_users = np.empty(number_of_users, dtype=int) #to save action in current frame for reward calculation
+        Rew_U = np.empty(number_of_users, dtype=float)  #
+        #Calculate the channel and update battery for current frame
+        #for u in range (np.size(users)):
+
+            #EH_Raw [u] = compute_energy_harvested(G_Raw, time_duration, p)
+            #users[u] =
+        randx = np.random.random()
+        randx = round(randx, 5)
+        #if randx <= epsilon:  # Random Action Selection
+        #    explore += 1
+        for d in range (np.size(users)):  # Random Action Selection
+            CH_Raw[d] = generate_rician_fading(K_factor)
+            users[d].channel = CH_Raw[d]
+            G_Raw[d] = gamma_EH(CH_Raw[d], dist[d]) #dist_min, dist_max)
+            BT_Dis[d] = users[d].BT_units()
+            CH_Dis [d] = get_channel(G_Raw[d])
+            bt_units = users[d].BT_units()
+            if bt_units > number_of_slots:
+                bt_units = number_of_slots
+            prob_dist = np.array([0.5624, 0.0891, 0.3485])#get_distr(bt_units)
+            if bt_units == 0:
+                slot_aloc_f [d,:] = np.zeros ((1, number_of_slots), dtype=int)
+                AC_users [d] = 0
+                #print(f"Random Action of User {d} is {0}")
+            else:
+                range_slot = np.array(range(0, number_of_slots), dtype=int) # to ask it to make a choice between first and last slot
+                range_action = np.array(range(1, len(prob_dist)+1), dtype=int) # to choose an action between 1 and max_battery unit with prob_dist
+                user_action = np.random.choice(range_action, size=1, p=prob_dist) # choose an action based on prob_dist
+                if user_action > a.size:
+                    user_action  = a.size
+                if user_action > bt_units:
+                    user_action = bt_units
+                slot_indices = np.random.choice(range_slot, size=user_action, replace=False) #choose random slots to send the packet
+                slot_aloc_f[d, slot_indices] = 1  #Make selected slots 1 for user's row
+                users[d].decrease_EH(user_action)
+                BT_Dis[d] = users[d].BT_units()
+                AC_users[d] = user_action
+                #print(f"Random Action of User {d} is {user_action}")
+            #slot_aloc_f [d-1, :]
+            #reward[d][it_ind] = get_rew(action)
+            #Remove action unit of energy from total energy
+            #EH_Raw[d, it_ind] = get_dis_AT (EH_Raw[d-1, 0], action, mu_bu)
+            # print(f"Explore")
+
+            # print(f"d: {d}")
+            # print(f"User {d} has state : {S[d-1]}")
+
+                #print(f"take action: {action}")
+                #reward[d][it_ind] = get_rew(action)
+                # Remove action unit of energy from total energy
+                #EH_Raw[d, it_ind] = get_dis_AT(EH_Raw[d - 1, 0], action, mu_bu)
+                #Get NEXT STATE
+                #d = d + 1
+        #use free slots for energy harvesting
+        for i in range(number_of_slots):
+            if np.sum(slot_aloc_f[:, i]) == 0:
+
+                idle_slots [it_ind] += 1 #track idle slots each iteration
+                # Normalize AOI to form probabilities (avoid zero-sum issue)
+                if np.sum(AOI_af) == 0:
+                    prob_aoi = np.ones(number_of_users) / number_of_users  # uniform fallback
+                else:
+                    prob_aoi = AOI_af / np.sum(AOI_af)
+                u = np.random.choice(np.arange(number_of_users), p=prob_aoi)
+                #u = rd.randint(0, number_of_users - 1)
+                # for u in range(number_of_users):
+                #    if u == user_to_transmit:
+                pw_u = compute_energy_harvested(G_Raw[u], time_duration, p)
+                users[u].add_EH(pw_u)
+                BT_Dis[u] = users[u].BT_units()
+
+        # apply SIC
+        decoded_users = capture_effect_SIC_realtime(slot_aloc_f, number_of_slots, number_of_users, G_Raw, verbose=False) # Rearly-n method
+
+        #Calculate AOI
+        Bf_aoi = np.ones(number_of_users, dtype=int)  # Before AOI update
+        Af_aoi = np.ones(number_of_users, dtype=int)  # After AOI update
+        for u in range(number_of_users):
+            Bf_aoi [u] = users[u].AOI
+            Recovery = decoded_users [u, 0]
+            Tx_slot = decoded_users [u, 1]
+            if Tx_slot == -1 or Recovery == -1:
+                users[u].AOI = Bf_aoi [u] + number_of_slots
+            else:
+                users[u].AOI = Recovery - Tx_slot + 1 + (number_of_slots - Recovery)
+            Af_aoi[u] = users[u].AOI
+            Rew_U [u] = get_rew (Bf_aoi [u], Af_aoi[u] , BT_Dis[u] , AC_users[u], CH_Dis[u])
+            #print(f"user {u} AOI is {users[u].AOI}")
+            #print(f"user {u} BT is {users[u].battery_level}")
+            #print(f"user {u} REW is {Rew_U [u]}")
+
+        AOI_af = Af_aoi
+        AOI_users [t*it_ind, :] = Af_aoi
+        AOI_users_tests [t-1, it_ind, :] = Af_aoi
+        #AOI_test_iter [t-1, it_ind, :] = Af_aoi
+        if it_ind > 0:
+            AOI_cumsum += Af_aoi  # assuming Af_aoi is the AoI at this iteration
+            AOI_test_iter[it_ind, :] = AOI_cumsum / (it_ind + 1)
+            #AOI_test_iter [t-1, it_ind, :] = (AOI_test_iter [t-1, it_ind-1, :] + AOI_test_iter [t-1, it_ind, :])/it_ind
+
+        #Collect Data
+        AC_user_f [it_ind, :] = AC_users
+        Ch_f [it_ind, :] = CH_Dis
+        Battery_f [it_ind, :] = BT_Dis
+        Rew_u_f[it_ind, :] = Rew_U
+        G_Raw_f[it_ind, :] = G_Raw
+        CH_raw_f [it_ind, :] = abs(CH_Raw)
+        slot_aloc_it[it_ind, :, :] = slot_aloc_f
+        explore_count.append(explore)
+        exploit_count.append(exploit)
+        # Update AOI using current frame AOI and add it into next frame AOI so that it can be used for next frame
+        #Update Next State
+
+    AOI_test_iter_all.append(AOI_test_iter[-1, :])
+    # store 2D matrices (iterations × users)
+    AC_user_tests_all.append(AC_user_f)
+    CH_user_tests_all.append(Ch_f)
+    BT_user_tests_all.append(Battery_f)
+    REW_user_tests_all.append(Rew_u_f)
+    G_user_tests_all.append(G_Raw_f)
+    Ch_Raw_tests_all.append(CH_raw_f)
+
+    # store 1D mean vectors (users,)
+    AC_user_mean_all.append(np.mean(AC_user_f, axis=1))
+    CH_mean_all.append(np.mean(Ch_f, axis=1))
+    Battery_mean_all.append(np.mean(Battery_f, axis=1))
+    Rew_u_mean_all.append(np.mean(Rew_u_f, axis=1))
+
+    #AC_user_tests [ :, :] = AC_user_f
+    #CH_user_tests [ :, :] = Ch_f
+    #BT_user_tests [ :, :] = Battery_f
+    #REW_user_tests [:, :] = Rew_u_f
+    #G_user_tests[ :, :] = G_Raw_f
+    #Ch_Raw_tests[ :, :] = CH_raw_f
+    #AC_user_Mean [ :] = np.mean(AC_user_f, axis=1)
+    #CH_mean [:] = np.mean(Ch_f, axis=1)
+    #Battery_mean [:] = np.mean(Battery_f, axis=1)
+    #Rew_u_mean [:] = np.mean(Rew_u_f, axis=1)
+
+    #save_per_test_matrix(G_user_tests, "G_user_tests", t-1, output_dir="data")
+    #save_per_test_matrix(AC_user_tests, "AC_user_tests", t-1, output_dir="data")
+    #save_per_test_matrix(CH_user_tests, "CH_user_tests", t-1, output_dir="data")
+    #save_per_test_matrix(BT_user_tests, "BT_user_tests", t-1, output_dir="data")
+    #save_per_test_matrix(REW_user_tests, "REW_user_tests", t-1, output_dir="data")
+    #save_per_test_matrix(Ch_Raw_tests, "Ch_Raw_tests", t-1, output_dir="data")
+
+    #save_per_test_vector(AC_user_Mean, "AC_user_Mean", t-1, output_dir="data")
+    #save_per_test_vector(CH_mean, "CH_mean", t-1, output_dir="data")
+    #save_per_test_vector(Battery_mean, "Battery_mean", t-1, output_dir="data")
+    #save_per_test_vector(Rew_u_mean, "Rew_u_mean", t-1, output_dir="data")
+
+    #AOI_test [t-1, :] = np.mean(AOI_test_iter[t-1, :, :], axis=0)
+    # mean over iterations and slots → gives 1 number per user
+    #slot_aloc_test[t - 1, :] = np.mean(slot_aloc_it, axis=(0, 2))
+    #mean_slot = np.mean(slot_aloc_it[t], axis=0)  # shape: (users, slots_t)
+    #slot_aloc_test.append(mean_slot)
+    G [t-1]= number_of_users / number_of_slots
+    #if t % chg_slots == 0:
+     #   number_of_slots -= d_slot
+      #  print(f"Slots Changed at test {t}: {number_of_slots}")
+    min_epsilon += 0.05
+    #number_of_users += 1
+    #dist_max += 0.03
+    #K_factor -= 0.01
+   # learning_rate -= 0.000005
+    #learning_rate = round(learning_rate, 6)
+    #K_factor = round(K_factor, 2)
+    #dist_max = round(dist_max, 2)
+    print(f"Test {t} Finished")
+    #print(f"Distance: {dist_max}")
+    #print(f"Updated Learning Rate: {learning_rate}")
+    #print(f"Updated K factor: {K_factor}")
+
+#print(f"Last Q Table {q_tables}")
+
+save_all_test_data_npy(
+    matrices_dict={"AOI_test_iter": AOI_test_iter_all},
+    vectors_dict={},  # no vector version in this case
+    output_dir=Out_dir  # specify your output directory
+)
+
+
+save_all_test_data_npy(
+    matrices_dict={
+        "AC_user_tests": AC_user_tests_all,
+        "CH_user_tests": CH_user_tests_all,
+        "BT_user_tests": BT_user_tests_all,
+        "REW_user_tests": REW_user_tests_all,
+        "G_user_tests": G_user_tests_all,
+        "Ch_Raw_tests": Ch_Raw_tests_all,
+
+    },
+    vectors_dict={
+        "AC_user_Mean": AC_user_mean_all,
+        "CH_mean": CH_mean_all,
+        "Battery_mean_all": Battery_mean_all,
+        "Rew_u_mean_all": Rew_u_mean_all,
+        # ...
+    },
+    output_dir=Out_dir  # specify your output directory
+)
+
+
+
+#output_dir = "data"
+
+
+#AC_user_tests = load_matrix_tests("AC_user_tests", test, input_dir=output_dir)
+#CH_user_tests = load_matrix_tests("CH_user_tests", test, input_dir=output_dir)
+#BT_user_tests = load_matrix_tests("BT_user_tests", test, input_dir=output_dir)
+#REW_user_tests = load_matrix_tests("REW_user_tests", test, input_dir=output_dir)
+#G_user_tests = load_matrix_tests("G_user_tests", test, input_dir=output_dir)
+#Ch_Raw_tests = load_matrix_tests("Ch_Raw_tests", test, input_dir=output_dir)
+
+# Precomputed mean vectors from earlier save
+#AC_user_Mean = load_vector_tests("AC_user_Mean", test, input_dir=output_dir)
+#CH_mean = load_vector_tests("CH_mean", test, input_dir=output_dir)
+#Battery_mean = load_vector_tests("Battery_mean", test, input_dir=output_dir)
+#Rew_u_mean = load_vector_tests("Rew_u_mean", test, input_dir=output_dir)
+
+# If you want to compute the mean over iterations → (tests, users)
 
 
 AC_user_tests = load_test_matrix_npy("AC_user_tests", Out_dir)
@@ -2198,6 +2504,30 @@ AOI_test_stds = []
 #plt.errorbar(G_v, AOI_test_means, yerr=AOI_test_stds, fmt='-o', capsize=5, label='Avg AOI ± StdDev')
 
 #plot_channel_gain_histograms(G_user_tests, user_indices=2, bins=10, bin_range=(0, 5))
+
+xf = np.linspace(0, iterations, iterations)
+fig2, ax = plt.subplots(1, 1)
+ax.plot(xf, epsilon_t[0,:], 'b-', lw=1, alpha=1, label=f'Epsilon')  # AoI medio del sistema per ogni iterazione
+ax.set_title('Epsilon vs Frames')
+ax.set_ylabel('Epsilon')
+ax.set_xlabel('Frames')
+ax.legend()
+plt.tight_layout()
+#fig.show()
+ax.grid(True)
+plt.show()
+
+plt.figure(figsize=(10, 5))
+plt.plot(explore_count, label="Exploration", color='red', linewidth=2)
+plt.plot(exploit_count, label="Exploitation", color='blue', linewidth=2)
+
+plt.xlabel("Frame")
+plt.ylabel("Cumulative Count")
+plt.title("Exploration vs Exploitation Over Time")
+plt.legend()
+plt.grid(True, linestyle='--', alpha=0.6)
+plt.tight_layout()
+plt.show()
 
 
 slots = []
@@ -2280,10 +2610,10 @@ for t in range(test):
 
 #plot_action_vs_battery(CH_user_tests, BT_user_tests, AC_user_tests)
 #plot_reward_vs_action(AC_user_tests, REW_user_tests)
-plot_battery_evolution(BT_user_tests)
+#plot_battery_evolution(BT_user_tests)
 
-plot_avg_battery_evolution(BT_user_tests, [0, 3, 5])
-plot_battery_delta_over_frames(BT_user_tests)
+#plot_avg_battery_evolution(BT_user_tests, [0, 3, 5])
+#plot_battery_delta_over_frames(BT_user_tests)
 
 #plot_action_vs_battery_combined(CH_user_tests, BT_user_tests, AC_user_tests, smooth_span=50, num_bins=20)
 #plot_userwise_action_histograms(AC_user_tests, num_bins=10)
@@ -2291,11 +2621,11 @@ plot_battery_delta_over_frames(BT_user_tests)
 #plot_user_slot_activity_histograms(slot_aloc_it)
 #plot_idle_slot_trend(idle_slots)
 
-plot_testwise_action_evolution(AC_user_tests, smoothing_window=3)
+#plot_testwise_action_evolution(AC_user_tests, smoothing_window=3)
 
-plot_testwise_reward_evolution(REW_user_tests, smoothing_window=3)
+#plot_testwise_reward_evolution(REW_user_tests, smoothing_window=3)
 
-plot_testwise_battery_evolution(BT_user_tests, smoothing_window=3)
+#plot_testwise_battery_evolution(BT_user_tests, smoothing_window=3)
 
 #plot_aoi_evolution(AOI_test_iter, smoothing_window=1000)
 
@@ -2305,10 +2635,8 @@ AOI_test_iter_all = load_test_matrix_npy("AOI_test_iter", Out_dir)
 
 plot_final_aoi_per_test(AOI_test_iter_all, smoothing_window=30)
 
-plot_action_vs_battery_by_discrete_channel(
-    BT_user_tests, CH_user_tests, AC_user_tests,
-    smooth_span=50,
-    num_bins=25,
-    show_quantiles=True,
-    allowed_channel_grades=range(8)  # 0 to 7
-)
+#plot_action_reward_contour(CH_user_tests, BT_user_tests, REW_user_tests, mode="global", value_label="Reward")
+#plot_action_reward_contour(CH_user_tests, BT_user_tests, AC_user_tests, mode="global", value_label="Action")
+
+print (f"Explore: {explore}")
+print (f"Exploit: {exploit}")

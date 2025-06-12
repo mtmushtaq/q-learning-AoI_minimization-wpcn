@@ -31,12 +31,12 @@ from mpl_toolkits.mplot3d import Axes3D
 # This code with an optimized Learning rate= 0.5, But we need to find the value of Epsilon for good convergence
 # define training parameters
 discount_factor = 0.99  # 0.001
-test = 300
+test = 200
 learning_rate = 0.0001
 #define system parameters
 mu_bu= 0.05 # one unit of battery
-number_of_slots = 45
-number_of_users = 40
+number_of_slots = 133
+number_of_users = 100
 time_duration = 0.02
 p= 4.6
 dist_min = 1
@@ -66,7 +66,7 @@ chg_slots = 80
 k = np.array([0, 1, 2, 3, 4, 5])  # possible power values
 x = np.array([0, 1, 2, 3, 4, 5, 6, 7])  # channel quality information
 a = np.array([0, 1, 2, 3, 4, 5])
-Out_dir  = "2_T_S_45_U_40_UP_020"
+Out_dir  = "IL_S_133_U_100_UP_020"
 # S = ((), dtype=float)
 #S = np.zeros((u.size, k.size, x.size), dtype=int)
 
@@ -2422,7 +2422,7 @@ for t in range(1, test+1):
         # Update AOI using current frame AOI and add it into next frame AOI so that it can be used for next frame
         #Update Next State
 
-    AOI_test_iter_all.append(AOI_test_iter[-1, :])
+    AOI_test_iter_all.append(AOI_test_iter) #append(AOI_test_iter[-1, :])
     # store 2D matrices (iterations × users)
     AC_user_tests_all.append(AC_user_f)
     CH_user_tests_all.append(Ch_f)
@@ -2688,7 +2688,7 @@ AOI_test_iter_all = load_test_matrix_npy("AOI_test_iter", Out_dir)
 
 #plot_aoi_testwise(AOI_test_iter_all, smoothing_window=30)
 
-plot_final_aoi_per_test(AOI_test_iter_all, smoothing_window=30)
+#plot_final_aoi_per_test(AOI_test_iter_all, smoothing_window=30)
 
 #plot_action_reward_contour(CH_user_tests, BT_user_tests, REW_user_tests, mode="global", value_label="Reward")
 #plot_action_reward_contour(CH_user_tests, BT_user_tests, AC_user_tests, mode="global", value_label="Action")
