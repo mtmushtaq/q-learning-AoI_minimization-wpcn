@@ -1,0 +1,51 @@
+def plot_final_aoi_per_test(AOI_test, smoothing_window=3):
+    """
+    Plot final AoI per test:
+    - Per-user evolution
+    - Overall average across users
+
+    Parameters:
+    - AOI_test: np.ndarray of shape (tests, users), each entry is the final AoI of user in that test
+    - smoothing_window: int, for SMA smoothing over tests
+    """
+    num_tests, num_users = AOI_test.shape
+
+    # Plot 1: Per-user AoI across tests
+    num_cols = 5
+    num_rows = int(np.ceil(num_users / num_cols))
+
+    fig, axs = plt.subplots(num_rows, num_cols, figsize=(4 * num_cols, 3 * num_rows), constrained_layout=True)
+    axs = axs.flatten()
+
+    for u in range(num_users):
+        raw = AOI_test[:, u]
+        smoothed = pd.Series(raw).rolling(window=smoothing_window, min_periods=1, center=True).mean()
+
+        axs[u].plot(raw, color='lightgray', label='Raw')
+        axs[u].plot(smoothed, color='blue', label=f'SMA (w={smoothing_window})')
+        axs[u].set_title(f"User {u}")
+        axs[u].set_xlabel("Test Index")
+        axs[u].set_ylabel("Final AoI")
+        axs[u].legend()
+        axs[u].grid(True)
+
+    for i in range(num_users, len(axs)):
+        fig.delaxes(axs[i])
+
+    fig.suptitle("Per-User Final AoI Over Tests", fontsize=16)
+    plt.show()
+
+    # Plot 2: Overall average AoI over all users
+    avg_aoi_all_users = AOI_test.mean(axis=1)
+    smoothed_avg = pd.Series(avg_aoi_all_users).rolling(window=smoothing_window, min_periods=1, center=True).mean()
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(avg_aoi_all_users, color='gray', label='Raw Mean AoI')
+    plt.plot(smoothed_avg, color='darkgreen', linewidth=2, label='Smoothed Mean AoI')
+    plt.title("Mean Final AoI per Test (All Users)")
+    plt.xlabel("Test Index")
+    plt.ylabel("Mean Final AoI")
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()

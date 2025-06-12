@@ -12,12 +12,12 @@ from State_User import * #generate_rician_fading, gamma_EH, compute_energy_harve
 from Discritize_state import get_dis_BT, get_dis_AT, CH_dist
 from SIC import *
 from User import User
-from Data_IO import *
+#from Data_IO import *
 import os
 import matplotlib.patches as patches
 from scipy.stats import binned_statistic_2d
 #import pandas as pd
-from pandas import DataFrame
+#from pandas import DataFrame
 import scipy.interpolate
 
 from scipy.interpolate import griddata
@@ -58,7 +58,38 @@ K_factor =  15
 decay_rate = 0.0005
 upsilon = 0.025 # One unit to transmit one replica
 d_slot = 8
-Out_dir  = "S_50_U_40_BT_004_K12"
+
+
+from pathlib import Path
+
+# ————————————————
+# 1) absolute base dir:
+# ————————————————
+BASE_DIR = Path(
+    "/Users/muhammadtauseefmushtaq/"
+    "Library/CloudStorage/OneDrive-PolitecnicodiBari/"
+    "AOI Conf Paper/Data 10 June"
+)
+if not BASE_DIR.exists():
+    raise FileNotFoundError(f"{BASE_DIR!r} does not exist")
+# ——————————————————————————————————
+# 2) construct the per‐experiment subfolder
+# ——————————————————————————————————
+slots = 200
+users = 100
+
+subfolder = f"IL_S_{slots}_U_{users}_UP_020"
+Out_dir = BASE_DIR / subfolder
+
+# (optional) if your load_… functions expect a str rather than a Path
+Out_dir = str(Out_dir)
+
+# sanity check
+if not os.path.isdir(Out_dir):
+    raise FileNotFoundError(f"Results folder not found: {Out_dir!r}")
+
+
+#Out_dir  = "S_50_U_40_BT_004_K12"
 #u = np.empty(number_of_users, dtype=object)  # define users array
 #for i in range(number_of_users):
  #   u[i] = i + 1
@@ -2040,58 +2071,6 @@ def plot_aoi_testwise(AOI_test, smoothing_window=3):
     plt.tight_layout()
     plt.show()
 
-def plot_final_aoi_per_test(AOI_test, smoothing_window=3):
-    """
-    Plot final AoI per test:
-    - Per-user evolution
-    - Overall average across users
-
-    Parameters:
-    - AOI_test: np.ndarray of shape (tests, users), each entry is the final AoI of user in that test
-    - smoothing_window: int, for SMA smoothing over tests
-    """
-    num_tests, num_users = AOI_test.shape
-
-    # Plot 1: Per-user AoI across tests
-    num_cols = 5
-    num_rows = int(np.ceil(num_users / num_cols))
-
-    fig, axs = plt.subplots(num_rows, num_cols, figsize=(4 * num_cols, 3 * num_rows), constrained_layout=True)
-    axs = axs.flatten()
-
-    for u in range(num_users):
-        raw = AOI_test[:, u]
-        smoothed = pd.Series(raw).rolling(window=smoothing_window, min_periods=1, center=True).mean()
-
-        axs[u].plot(raw, color='lightgray', label='Raw')
-        axs[u].plot(smoothed, color='blue', label=f'SMA (w={smoothing_window})')
-        axs[u].set_title(f"User {u}")
-        axs[u].set_xlabel("Test Index")
-        axs[u].set_ylabel("Final AoI")
-        axs[u].legend()
-        axs[u].grid(True)
-
-    for i in range(num_users, len(axs)):
-        fig.delaxes(axs[i])
-
-    fig.suptitle("Per-User Final AoI Over Tests", fontsize=16)
-    plt.show()
-
-    # Plot 2: Overall average AoI over all users
-    avg_aoi_all_users = AOI_test.mean(axis=1)
-    smoothed_avg = pd.Series(avg_aoi_all_users).rolling(window=smoothing_window, min_periods=1, center=True).mean()
-
-    plt.figure(figsize=(10, 5))
-    plt.plot(avg_aoi_all_users, color='gray', label='Raw Mean AoI')
-    plt.plot(smoothed_avg, color='darkgreen', linewidth=2, label='Smoothed Mean AoI')
-    plt.title("Mean Final AoI per Test (All Users)")
-    plt.xlabel("Test Index")
-    plt.ylabel("Mean Final AoI")
-    plt.grid(True)
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
-
 def plot_action_vs_battery_by_discrete_channel(
     BT_user_tests, CH_user_tests, AC_user_tests,
     smooth_span=50,
@@ -2171,13 +2150,92 @@ def plot_action_vs_battery_by_discrete_channel(
     plt.show()
 
 
-AC_user_tests = load_test_matrix_npy("AC_user_tests", Out_dir)
+
+def plot_final_aoi_per_test(AOI_test_iter_all, save_dir, smoothing_window=3):
+ """
+ Plot final AoI per test using only the last iteration values,
+ and save the figures as high-resolution PDF.
+
+ Parameters:
+ - AOI_test_iter_all: np.ndarray of shape (tests, iterations, users),
+                      with all iteration AoI histories.
+ - save_dir: str or Path. Directory where PDF figures will be saved.
+ - smoothing_window: int, window size for SMA smoothing.
+ """
+ # Ensure save_dir exists
+ save_path = Path(save_dir)
+ save_path.mkdir(parents=True, exist_ok=True)
+
+ # Extract only the last iteration's AoI for each test and user
+ final_aoi = np.asarray(AOI_test_iter_all)
+ AOI_test = final_aoi[:, -1, :]  # shape -> (tests, users)
+
+ num_tests, num_users = AOI_test.shape
+
+ # Plot 1: Per-user AoI across tests
+ num_cols = 5
+ num_rows = int(np.ceil(num_users / num_cols))
+
+ fig1, axs = plt.subplots(num_rows, num_cols, figsize=(4 * num_cols, 3 * num_rows), constrained_layout=True)
+ axs = axs.flatten()
+
+ for u in range(num_users):
+     raw = AOI_test[:, u]
+     smoothed = pd.Series(raw).rolling(window=smoothing_window, min_periods=1, center=True).mean()
+
+     axs[u].plot(raw, color='lightgray', label='Raw')
+     axs[u].plot(smoothed, color='blue', label=f'SMA (w={smoothing_window})')
+     axs[u].set_title(f"User {u}")
+     axs[u].set_xlabel("Test Index")
+     axs[u].set_ylabel("Final AoI")
+     axs[u].legend()
+     axs[u].grid(True)
+
+ # Remove unused axes
+ for i in range(num_users, len(axs)):
+     fig1.delaxes(axs[i])
+
+ fig1.suptitle("Per-User Final AoI Over Tests", fontsize=16)
+ # Save figure
+ fig1_path = save_path / "per_user_final_aoi.pdf"
+ fig1.savefig(fig1_path, dpi=600)
+ print(f"Saved figure: {fig1_path}")
+ plt.show()
+
+ # Plot 2: Overall average AoI over all users
+ avg_aoi_all_users = AOI_test.mean(axis=1)
+ smoothed_avg = pd.Series(avg_aoi_all_users).rolling(window=smoothing_window, min_periods=1, center=True).mean()
+
+ fig2, ax2 = plt.subplots(figsize=(10, 5))
+ ax2.plot(avg_aoi_all_users, color='gray', label='Raw Mean AoI')
+ ax2.plot(smoothed_avg, color='darkgreen', linewidth=2, label='Smoothed Mean AoI')
+ ax2.set_title("Mean Final AoI per Test (All Users)")
+ ax2.set_xlabel("Test Index")
+ ax2.set_ylabel("Mean Final AoI")
+ ax2.grid(True)
+ ax2.legend()
+ fig2.tight_layout()
+ # Save figure
+ fig2_path = save_path / "mean_final_aoi.pdf"
+ fig2.savefig(fig2_path, dpi=600)
+ print(f"Saved figure: {fig2_path}")
+ plt.show()
+
+ # Example usage:
+ # AOI_test_iter_all = load_test_matrix_npy("AOI_test_iter", Out_dir)
+ # plot_final_aoi_per_test(AOI_test_iter_all, "/path/to/save/figures", smoothing_window=5)
+
+ AC_user_tests = load_test_matrix_npy("AC_user_tests", Out_dir)
+
+
+
 AC_user_Mean = load_test_vector_npy("AC_user_Mean", Out_dir)
 CH_user_tests = load_test_matrix_npy("CH_user_tests", Out_dir)
 BT_user_tests = load_test_vector_npy("BT_user_tests", Out_dir)
 REW_user_tests = load_test_matrix_npy("REW_user_tests", Out_dir)
 G_user_tests = load_test_matrix_npy("G_user_tests", Out_dir)
 Ch_Raw_tests = load_test_matrix_npy("Ch_Raw_tests", Out_dir)
+AC_user_tests = load_test_matrix_npy("AC_user_tests", Out_dir)
 AC_user_avg_test = np.mean(AC_user_tests, axis=1)
 CH_user_avg_test = np.mean(CH_user_tests, axis=1)
 BT_user_avg_test = np.mean(BT_user_tests, axis=1)
@@ -2303,7 +2361,9 @@ AOI_test_iter_all = load_test_matrix_npy("AOI_test_iter", Out_dir)
 
 #plot_aoi_testwise(AOI_test_iter_all, smoothing_window=30)
 
-plot_final_aoi_per_test(AOI_test_iter_all, smoothing_window=30)
+#plot_final_aoi_per_test(AOI_test_iter_all, smoothing_window=30)
+
+plot_final_aoi_per_test(AOI_test_iter_all, save_dir = "AOI_f", smoothing_window=3)
 
 plot_action_vs_battery_by_discrete_channel(
     BT_user_tests, CH_user_tests, AC_user_tests,
