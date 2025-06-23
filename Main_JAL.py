@@ -35,12 +35,12 @@ test = 200
 learning_rate = 0.0001
 #define system parameters
 mu_bu= 0.05 # initial one unit of battery
-number_of_slots = 40
-number_of_users = 70
-time_duration = 0.03
+number_of_slots = 50
+number_of_users = 100
+time_duration = 0.02
 p= 4.6
 dist_min = 1
-dist_max = 8
+dist_max = 7
 s_AAOI = []
 Gain = []
 Th= 0.2
@@ -66,7 +66,7 @@ chg_slots = 80
 k = np.array([0, 1, 2, 3, 4, 5])  # possible power values
 x = np.array([0, 1, 2, 3, 4, 5, 6, 7])  # channel quality information
 a = np.array([0, 1, 2, 3, 4, 5])
-Out_dir  = "JAL_S_70_U_40_BT003"
+Out_dir  = "JAL_S_50_U_100"
 # S = ((), dtype=float)
 #S = np.zeros((u.size, k.size, x.size), dtype=int)
 
@@ -2178,7 +2178,7 @@ for i in range(number_of_users):  # popola il vettore degli utenti
     # users[i] = i + 1
     users.append(User(id=i, mu=upsilon, initial_battery_level=0.05))  # inizializza ogni utente con un livello di batteria di 0.005
 
-q_tables = np.empty([number_of_users, k.size * x.size, a.size], dtype=float)
+q_tables = np.empty([number_of_users, k.size * x.size, a.size], dtype=np.float32)
 for user in range(np.size(users)):
     q_tables[user, :, :] = np.random.rand(k.size * x.size, a.size)
 #print(f"first Q Table {q_tables}")
@@ -2187,12 +2187,12 @@ AOI_users = np.ones((iterations*test, number_of_users), dtype=int)
 AOI_users_tests = np.empty((test, iterations,number_of_users), dtype=int)
 #print(q_tables)
 # print(f"All State matrix {S}")
-G = np.empty(test, dtype = float)
+G = np.empty(test, dtype = np.float32)
 
 
-epsilon_t = np.zeros((test, iterations), dtype=float)
+epsilon_t = np.zeros((test, iterations), dtype=np.float32)
 #AOI_test_iter = np.ones((test, iterations, number_of_users), dtype=float)
-AOI_test = np.ones((test, number_of_users), dtype=float)
+AOI_test = np.ones((test, number_of_users), dtype=np.float32)
 
 AC_user_tests_all = []
 CH_user_tests_all = []
@@ -2219,27 +2219,27 @@ for t in range(1, test+1):
     #REW_user_tests = np.empty((iterations, number_of_users), dtype=float)
     #G_user_tests = np.empty((iterations, number_of_users), dtype=float)
     #Ch_Raw_tests = np.empty((iterations, number_of_users), dtype=float)
-    slot_aloc_test = np.zeros((number_of_users), dtype=float)
+    slot_aloc_test = np.zeros((number_of_users), dtype=np.float32)
     idle_slots = np.zeros(iterations, dtype=int)
     slot_aloc_it = np.zeros((iterations, np.size(users), number_of_slots), dtype=int)
     min_epsilon = 0.3
     max_epsilon = 0.9
-    reward = np.empty((number_of_users, iterations + 1), dtype=float)
+    reward = np.empty((number_of_users, iterations + 1), dtype=np.float32)
     AOI = np.zeros((number_of_users, iterations + 1), dtype=int)
     AOI_af= np.ones(number_of_users, dtype=int)
     #users = []
     #for i in range(number_of_users):  # popola il vettore degli utenti
         # users[i] = i + 1
      #   users.append(User(id=i, mu=upsilon,initial_battery_level=0.05))  # inizializza ogni utente con un livello di batteria di 0.005
-    Battery_f = np.empty((iterations, number_of_users), dtype=float)  # To save state of all users in current frame
-    Ch_f = np.empty((iterations, number_of_users), dtype=float)
+    Battery_f = np.empty((iterations, number_of_users), dtype=np.float32)  # To save state of all users in current frame
+    Ch_f = np.empty((iterations, number_of_users), dtype=np.float32)
     AC_user_f = np.empty((iterations, number_of_users), dtype=int)
-    Rew_u_f = np.empty((iterations, number_of_users), dtype=float)
-    G_Raw_f = np.empty((iterations, number_of_users), dtype=float)
-    CH_raw_f = np.empty((iterations, number_of_users), dtype=float)
+    Rew_u_f = np.empty((iterations, number_of_users), dtype=np.float32)
+    G_Raw_f = np.empty((iterations, number_of_users), dtype=np.float32)
+    CH_raw_f = np.empty((iterations, number_of_users), dtype=np.float32)
     dist = np.random.uniform(dist_min, dist_max, size= number_of_users)
-    AOI_cumsum = np.zeros((number_of_users,), dtype=float)
-    AOI_test_iter = np.zeros((iterations, number_of_users), dtype=float)
+    AOI_cumsum = np.zeros((number_of_users,), dtype=np.float32)
+    AOI_test_iter = np.zeros((iterations, number_of_users), dtype=np.float32)
     #q_tables = np.empty([number_of_users, k.size * x.size, a.size], dtype=float)
     #for user in range(np.size(users)):
      #   q_tables[user, :, :] = np.random.rand(k.size * x.size, a.size)
@@ -2249,15 +2249,15 @@ for t in range(1, test+1):
         epsilon = round(epsilon, 5)
         epsilon_t[t-1, it_ind] = epsilon
         slot_aloc_f = np.zeros ((np.size(users), number_of_slots), dtype=int)
-        S = np.empty((number_of_users, 1, 2), dtype=float)  # To save state of all users in current frame
-        EH_Raw = np.empty(number_of_users, dtype=float)  # to save raw battery capacity of all users at current iteration/frame
+        S = np.empty((number_of_users, 1, 2), dtype=np.float32)  # To save state of all users in current frame
+        EH_Raw = np.empty(number_of_users, dtype=np.float32)  # to save raw battery capacity of all users at current iteration/frame
         #EH_Raw[:, 0] = EH_Raw[:, 0] + 0.05
         BT_Dis = np.empty(number_of_users, dtype=int)  # to save discrete battery capacity of all users at current iteration/frame
         CH_Raw = np.empty(number_of_users, dtype=complex)  # to save raw channel gamma of all users at current iteration/frame
         CH_Dis = np.empty(number_of_users, dtype=int)  # to save discrete channel gamma of all users at current iteration/frame
-        G_Raw = np.empty(number_of_users, dtype=float) # to save Gamma of current frame
+        G_Raw = np.empty(number_of_users, dtype=np.float32) # to save Gamma of current frame
         AC_users = np.empty(number_of_users, dtype=int) #to save action in current frame for reward calculation
-        Rew_U = np.empty(number_of_users, dtype=float)  #
+        Rew_U = np.empty(number_of_users, dtype=np.float32)  #
         #Calculate the channel and update battery for current frame
         #for u in range (np.size(users)):
 
@@ -2429,7 +2429,7 @@ for t in range(1, test+1):
         # Update AOI using current frame AOI and add it into next frame AOI so that it can be used for next frame
         #Update Next State
 
-    AOI_test_iter_all.append(AOI_test_iter[-1, :])
+    AOI_test_iter_all.append(AOI_test_iter)#append(AOI_test_iter[-1, :])
     # store 2D matrices (iterations × users)
     AC_user_tests_all.append(AC_user_f)
     CH_user_tests_all.append(Ch_f)
@@ -2691,11 +2691,11 @@ for t in range(test):
 
 #plot_aoi_evolution(AOI_test_iter, smoothing_window=1000)
 
-AOI_test_iter_all = load_test_matrix_npy("AOI_test_iter", Out_dir)
+#AOI_test_iter_all = load_test_matrix_npy("AOI_test_iter", Out_dir)
 
 #plot_aoi_testwise(AOI_test_iter_all, smoothing_window=30)
 
-plot_final_aoi_per_test(AOI_test_iter_all, smoothing_window=30)
+#plot_final_aoi_per_test(AOI_test_iter_all, smoothing_window=30)
 
 #plot_action_reward_contour(CH_user_tests, BT_user_tests, REW_user_tests, mode="global", value_label="Reward")
 #plot_action_reward_contour(CH_user_tests, BT_user_tests, AC_user_tests, mode="global", value_label="Action")
