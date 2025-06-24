@@ -35,7 +35,7 @@ test = 200
 learning_rate = 0.0001
 #define system parameters
 mu_bu= 0.05 # one unit of battery
-number_of_slots = 133
+number_of_slots = 56
 number_of_users = 100
 time_duration = 0.02
 p= 4.6
@@ -66,7 +66,7 @@ chg_slots = 80
 k = np.array([0, 1, 2, 3, 4, 5])  # possible power values
 x = np.array([0, 1, 2, 3, 4, 5, 6, 7])  # channel quality information
 a = np.array([0, 1, 2, 3, 4, 5])
-Out_dir  = "IL_S_133_U_100_UP_020"
+Out_dir  = "IL_S_56_U_100_UP_020"
 # S = ((), dtype=float)
 #S = np.zeros((u.size, k.size, x.size), dtype=int)
 
@@ -2190,9 +2190,9 @@ AOI_users_tests = np.empty((test, iterations,number_of_users), dtype=int)
 G = np.empty(test, dtype = float)
 
 
-epsilon_t = np.zeros((test, iterations), dtype=float)
+epsilon_t = np.zeros((test, iterations), dtype=np.float32)
 #AOI_test_iter = np.ones((test, iterations, number_of_users), dtype=float)
-AOI_test = np.ones((test, number_of_users), dtype=float)
+AOI_test = np.ones((test, number_of_users), dtype=np.float32)
 
 AC_user_tests_all = []
 CH_user_tests_all = []
@@ -2219,27 +2219,27 @@ for t in range(1, test+1):
     #REW_user_tests = np.empty((iterations, number_of_users), dtype=float)
     #G_user_tests = np.empty((iterations, number_of_users), dtype=float)
     #Ch_Raw_tests = np.empty((iterations, number_of_users), dtype=float)
-    slot_aloc_test = np.zeros((number_of_users), dtype=float)
+    slot_aloc_test = np.zeros((number_of_users), dtype=np.float32)
     idle_slots = np.zeros(iterations, dtype=int)
     slot_aloc_it = np.zeros((iterations, np.size(users), number_of_slots), dtype=int)
     min_epsilon = 0.3
     max_epsilon = 0.9
-    reward = np.empty((number_of_users, iterations + 1), dtype=float)
+    reward = np.empty((number_of_users, iterations + 1), dtype=np.float32)
     AOI = np.zeros((number_of_users, iterations + 1), dtype=int)
     AOI_af= np.ones(number_of_users, dtype=int)
     #users = []
     #for i in range(number_of_users):  # popola il vettore degli utenti
         # users[i] = i + 1
      #   users.append(User(id=i, mu=upsilon,initial_battery_level=0.05))  # inizializza ogni utente con un livello di batteria di 0.005
-    Battery_f = np.empty((iterations, number_of_users), dtype=float)  # To save state of all users in current frame
-    Ch_f = np.empty((iterations, number_of_users), dtype=float)
+    Battery_f = np.empty((iterations, number_of_users), dtype=np.float32)  # To save state of all users in current frame
+    Ch_f = np.empty((iterations, number_of_users), dtype=np.float32)
     AC_user_f = np.empty((iterations, number_of_users), dtype=int)
-    Rew_u_f = np.empty((iterations, number_of_users), dtype=float)
-    G_Raw_f = np.empty((iterations, number_of_users), dtype=float)
-    CH_raw_f = np.empty((iterations, number_of_users), dtype=float)
+    Rew_u_f = np.empty((iterations, number_of_users), dtype=np.float32)
+    G_Raw_f = np.empty((iterations, number_of_users), dtype=np.float32)
+    CH_raw_f = np.empty((iterations, number_of_users), dtype=np.float32)
     dist = np.random.uniform(dist_min, dist_max, size= number_of_users)
-    AOI_cumsum = np.zeros((number_of_users,), dtype=float)
-    AOI_test_iter = np.zeros((iterations, number_of_users), dtype=float)
+    AOI_cumsum = np.zeros((number_of_users,), dtype=np.float32)
+    AOI_test_iter = np.zeros((iterations, number_of_users), dtype=np.float32)
     #q_tables = np.empty([number_of_users, k.size * x.size, a.size], dtype=float)
     #for user in range(np.size(users)):
      #   q_tables[user, :, :] = np.random.rand(k.size * x.size, a.size)

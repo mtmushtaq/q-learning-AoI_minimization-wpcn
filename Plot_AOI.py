@@ -66,20 +66,21 @@ from pathlib import Path
 # 1) absolute base dir:
 # ————————————————
 BASE_DIR = Path(
-    "/Users/muhammadtauseefmushtaq/"
-    "Library/CloudStorage/OneDrive-PolitecnicodiBari/"
-    "AOI Conf Paper/Data 10 June"
+    r"C:\Users\Tauseef\OneDrive - Politecnico di Bari"
+    r"\AOI Q learning Paper\Data 10 June"
 )
 if not BASE_DIR.exists():
     raise FileNotFoundError(f"{BASE_DIR!r} does not exist")
 # ——————————————————————————————————
 # 2) construct the per‐experiment subfolder
 # ——————————————————————————————————
-slots = 200
+slots = 250
 users = 100
 
+BASE_DIR_IL = Path (BASE_DIR / r"E:\IL_U100")
+
 subfolder = f"IL_S_{slots}_U_{users}_UP_020"
-Out_dir = BASE_DIR / subfolder
+Out_dir = BASE_DIR_IL / subfolder
 
 # (optional) if your load_… functions expect a str rather than a Path
 Out_dir = str(Out_dir)
@@ -1940,25 +1941,48 @@ def plot_testwise_reward_evolution(REW_user_tests, smoothing_window=3):
     plt.show()
 
 
-def plot_testwise_battery_evolution(BT_user_tests, smoothing_window=3):
+import os
+from pathlib import Path
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+def plot_testwise_battery_evolution(
+    BT_user_tests,
+    save_dir,
+    smoothing_window=3
+):
     """
-    Plot average battery per test for each user, with a smoothing line.
+    Plot average battery per test for each user, with a smoothing line,
+    save the figure as a PDF at 600 dpi.
 
     Parameters:
     - BT_user_tests: np.ndarray of shape (tests, iterations, users)
+    - save_dir: str or Path. Directory to save the PDF.
     - smoothing_window: int, window size for moving average smoothing
     """
+    # Ensure save directory exists
+    save_path = Path(save_dir)
+    save_path.mkdir(parents=True, exist_ok=True)
+
     num_tests, num_iterations, num_users = BT_user_tests.shape
+    # Compute average battery per test (averaged over iterations)
     avg_battery = BT_user_tests.mean(axis=1)
 
     num_cols = 5
     num_rows = int(np.ceil(num_users / num_cols))
-    fig, axs = plt.subplots(num_rows, num_cols, figsize=(4 * num_cols, 3 * num_rows), constrained_layout=True)
+    fig, axs = plt.subplots(
+        num_rows, num_cols,
+        figsize=(4 * num_cols, 3 * num_rows),
+        constrained_layout=True
+    )
     axs = axs.flatten()
 
     for u in range(num_users):
         raw = avg_battery[:, u]
-        smoothed = pd.Series(raw).rolling(window=smoothing_window, min_periods=1, center=True).mean()
+        smoothed = pd.Series(raw).rolling(
+            window=smoothing_window, min_periods=1, center=True
+        ).mean()
 
         axs[u].plot(raw, marker='o', linestyle='-', color='lightgray', label='Raw')
         axs[u].plot(smoothed, color='orange', linewidth=2, label=f'SMA (w={smoothing_window})')
@@ -1968,11 +1992,26 @@ def plot_testwise_battery_evolution(BT_user_tests, smoothing_window=3):
         axs[u].grid(True)
         axs[u].legend()
 
+    # Remove unused subplots
     for i in range(num_users, len(axs)):
         fig.delaxes(axs[i])
 
     fig.suptitle("User-wise Smoothed Battery Evolution Across Tests", fontsize=16)
+
+    # Save the figure
+    pdf_path = save_path / "battery_evolution_per_user.pdf"
+    fig.savefig(pdf_path, dpi=600, format='pdf')
+    print(f"Saved figure: {pdf_path}")
+
     plt.show()
+
+# Example usage:
+# BT_user_tests = load_test_matrix_npy("BT_user_tests", Out_dir)
+# plot_testwise_battery_evolution(
+#     BT_user_tests,
+#     save_dir="/path/to/save/figures",
+#     smoothing_window=3
+# )
 
 def plot_aoi_evolution(AOI_test_iter, smoothing_window=1000):
     """
@@ -2353,7 +2392,13 @@ plot_testwise_action_evolution(AC_user_tests, smoothing_window=3)
 
 plot_testwise_reward_evolution(REW_user_tests, smoothing_window=3)
 
-plot_testwise_battery_evolution(BT_user_tests, smoothing_window=3)
+#plot_testwise_battery_evolution(BT_user_tests, smoothing_window=3)
+
+plot_testwise_battery_evolution(
+    BT_user_tests,
+    save_dir="AOI_f_100",
+    smoothing_window=3
+)
 
 #plot_aoi_evolution(AOI_test_iter, smoothing_window=1000)
 
@@ -2363,7 +2408,7 @@ AOI_test_iter_all = load_test_matrix_npy("AOI_test_iter", Out_dir)
 
 #plot_final_aoi_per_test(AOI_test_iter_all, smoothing_window=30)
 
-plot_final_aoi_per_test(AOI_test_iter_all, save_dir = "AOI_f", smoothing_window=3)
+plot_final_aoi_per_test(AOI_test_iter_all, save_dir = "AOI_f_100", smoothing_window=3)
 
 plot_action_vs_battery_by_discrete_channel(
     BT_user_tests, CH_user_tests, AC_user_tests,

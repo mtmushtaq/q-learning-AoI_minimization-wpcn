@@ -35,7 +35,7 @@ test = 200
 learning_rate = 0.0001
 #define system parameters
 mu_bu= 0.05 # initial one unit of battery
-number_of_slots = 56
+number_of_slots = 50
 number_of_users = 100
 time_duration = 0.02
 p= 4.6
@@ -66,7 +66,7 @@ chg_slots = 80
 k = np.array([0, 1, 2, 3, 4, 5])  # possible power values
 x = np.array([0, 1, 2, 3, 4, 5, 6, 7])  # channel quality information
 a = np.array([0, 1, 2, 3, 4, 5])
-Out_dir  = "JAL_S_56_U_100"
+Out_dir  = "JAL_S_50_U_100"
 # S = ((), dtype=float)
 #S = np.zeros((u.size, k.size, x.size), dtype=int)
 
@@ -2191,7 +2191,7 @@ G = np.empty(test, dtype = np.float32)
 
 
 epsilon_t = np.zeros((test, iterations), dtype=np.float32)
-#AOI_test_iter = np.ones((test, iterations, number_of_users), dtype=np.float32)
+#AOI_test_iter = np.ones((test, iterations, number_of_users), dtype=float)
 AOI_test = np.ones((test, number_of_users), dtype=np.float32)
 
 AC_user_tests_all = []
@@ -2403,7 +2403,7 @@ for t in range(1, test+1):
             BT_Dis_next = np.empty(number_of_users, dtype=int)  # to save discrete battery capacity of all users at current iteration/frame
             CH_Raw_next = np.empty(number_of_users, dtype=complex)  # to save raw channel gamma of all users at current iteration/frame
             CH_Dis_next = np.empty(number_of_users, dtype=int)  # to save discrete channel gamma of all users at current iteration/frame
-            G_Raw_next = np.empty(number_of_users, dtype=np.float32)  # to save Gamma of current frame
+            G_Raw_next = np.empty(number_of_users, dtype=float)  # to save Gamma of current frame
             Cumulative_Rew = np.sum(Rew_U)
             for u in range(number_of_users):
                 CH_Raw_next[u] = generate_rician_fading(K_factor)

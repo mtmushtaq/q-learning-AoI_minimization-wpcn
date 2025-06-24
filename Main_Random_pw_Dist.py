@@ -2367,7 +2367,7 @@ for t in range(1, test+1):
         # Update AOI using current frame AOI and add it into next frame AOI so that it can be used for next frame
         #Update Next State
 
-    AOI_test_iter_all.append(AOI_test_iter[-1, :])
+    AOI_test_iter_all.append(AOI_test_iter)
     # store 2D matrices (iterations × users)
     AC_user_tests_all.append(AC_user_f)
     CH_user_tests_all.append(Ch_f)
