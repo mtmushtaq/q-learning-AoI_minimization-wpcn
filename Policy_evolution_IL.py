@@ -20,16 +20,18 @@ if not BASE_DIR.exists():
 slots_05 = 200
 users = 100
 
+BASE_DIR_IL = Path (BASE_DIR / r"E:\IL_U100")
+
 subfolder_05 = f"IL_S_{slots_05}_U_{users}_UP_020"
-Out_dir_05 = BASE_DIR / subfolder_05
+Out_dir_05 = BASE_DIR_IL / subfolder_05
 
 # (optional) if your load_… functions expect a str rather than a Path
 Out_dir_05 = str(Out_dir_05)
 
-slots_062 = 160
-subfolder_062 = f"IL_S_{slots_062}_U_{users}_UP_020"
-Out_dir_062 = BASE_DIR / subfolder_062
-Out_dir_062 = str(Out_dir_062)
+slots_04 = 250
+subfolder_04 = f"IL_S_{slots_04}_U_{users}_UP_020"
+Out_dir_04 = BASE_DIR_IL / subfolder_04
+Out_dir_04 = str(Out_dir_04)
 #Out_dir_05 = "JAL_S_40_U_40_UP2"
 #Out_dir_IL = "S_40_U_40_BT_003"
 
@@ -37,7 +39,7 @@ Out_dir_062 = str(Out_dir_062)
 AC_user_05 = load_test_matrix_npy("AC_user_tests", Out_dir_05)[:200,:,:]
 
 
-AC_user_062 = load_test_matrix_npy("AC_user_tests", Out_dir_062)[:200,:,:]
+AC_user_04 = load_test_matrix_npy("AC_user_tests", Out_dir_04)[:200,:,:]
 
 
 import numpy as np
@@ -46,7 +48,7 @@ import os
 
 def plot_action_distribution_comparison_over_tests(
     AC_user_tests_05,
-    AC_user_tests_062,
+    AC_user_tests_04,
     num_actions=6,
     output_dir="plots",
     output_filename="IL_vs_JAL_action_prob_trend.pdf"
@@ -66,11 +68,11 @@ def plot_action_distribution_comparison_over_tests(
             action_probs_IL[t, a] = np.mean(actions_flat == a)
 
     # Compute action probability evolution for JAL
-    num_tests_JAL = AC_user_tests_062.shape[0]
+    num_tests_JAL = AC_user_tests_04.shape[0]
     action_probs_JAL = np.zeros((num_tests_JAL, num_actions))
 
     for t in range(num_tests_JAL):
-        actions_flat = AC_user_tests_062[t].flatten()
+        actions_flat = AC_user_tests_04[t].flatten()
         for a in range(num_actions):
             action_probs_JAL[t, a] = np.mean(actions_flat == a)
 
@@ -90,7 +92,7 @@ def plot_action_distribution_comparison_over_tests(
     for a in range(num_actions):
         axs[1].plot(range(num_tests_JAL), action_probs_JAL[:, a],
                     marker='o', markersize=3, linestyle=':', linewidth=1.5, label=f"Action {a}")
-    axs[1].set_title("Action Probability Evolution M = 100, N = 160", fontsize=14, fontweight='bold')
+    axs[1].set_title("Action Probability Evolution M = 100, N = 250", fontsize=14, fontweight='bold')
     axs[1].set_xlabel("Test Index", fontsize=12, fontweight='bold')
     axs[1].set_ylabel("Probability", fontsize=12, fontweight='bold')
     axs[1].grid(True, linestyle='--', alpha=0.5)
@@ -111,8 +113,8 @@ def plot_action_distribution_comparison_over_tests(
 
 plot_action_distribution_comparison_over_tests(
     AC_user_05,
-    AC_user_062,
+    AC_user_04,
     num_actions=6,
-    output_dir="Policy_evo_IL_G05_062",
-    output_filename="IL_action_trend_G05_062.pdf"
+    output_dir="Policy_evo_IL_G04_062",
+    output_filename="IL_action_trend_G04_05.pdf"
 )

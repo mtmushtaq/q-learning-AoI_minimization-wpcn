@@ -1,20 +1,37 @@
 import numpy as np
 import matplotlib.pyplot as plt
+
+#from Plot_AOI import users
 from data_npy_io import *
 from pathlib import Path
 
 # Fixed parameters
+users = 100
 users_IL = 100
-slots_IL = [50, 75, 80, 100, 133, 160, 200, 225]
-gains_IL = [round(users_IL / s, 3) for s in slots_IL]
-
-#users_JAL = 24
-#slots_JAL = [12, 18, 27, 34, 48, 54, 60]
-#gains_JAL = [round(users_JAL / s, 3) for s in slots_JAL]
-
 users_JAL = 100
-slots_JAL = [50, 75, 100, 133, 160, 200, 225]
-gains_JAL = [round(users_JAL / s, 3) for s in slots_JAL]
+
+slots_IL = [250, 225, 200, 160, 133, 100, 80, 75, 62, 56, 50]
+gains_IL = [round(users/ s, 3) for s in slots_IL]
+store_dirs_IL = [
+    "IL_S_250_U_100_UP_020", "IL_S_225_U_100_UP_020", "IL_S_200_U_100_UP_020",
+    "IL_S_160_U_100_UP_020", "IL_S_133_U_100_UP_020", "IL_S_100_U_100_UP_020",
+    "IL_S_80_U_100_UP_020", "IL_S_75_U_100_UP_020", "IL_S_62_U_100_UP_020",
+    "IL_S_56_U_100_UP_020", "IL_S_50_U_100_UP_020"
+]
+
+# Do the same for JAL
+slots_JAL = [250, 225, 200, 160, 133, 100, 75, 62, 56, 50]
+gains_JAL = [round(users / s, 3) for s in slots_JAL]
+store_dirs_JAL = [
+    "JAL_S_250_U_100", "JAL_S_225_U_100", "JAL_S_200_U_100",
+    "JAL_S_160_U_100", "JAL_S_133_U_100", "JAL_S_100_U_100",
+    "JAL_S_75_U_100", "JAL_S_62_U_100", "JAL_S_56_U_100", "JAL_S_50_U_100"
+]
+
+
+for g, d in zip(gains_IL, store_dirs_IL):
+    print(f"G = {g:.3f} → {d}")
+
 
 users_dist = 20
 slots_dist = [10, 15, 20, 25, 30, 35, 40]
@@ -36,10 +53,6 @@ BASE_DIR_JAL = Path(
     r"E:\JAL_U100"
 )
 
-# Corresponding folders (must match slot order)
-store_dirs_IL = ["IL_S_50_U_100_UP_020", "IL_S_75_U_100_UP_020", "IL_S_80_U_100_UP_020", "IL_S_100_U_100_UP_020", "IL_S_133_U_100_UP_020", "IL_S_160_U_100_UP_020", "IL_S_200_U_100_UP_020", "IL_S_225_U_100_UP_020"]
-#store_dirs_JAL = [ "JAL_S_20_U_40_UP2", "JAL_S_30_U_40_UP2","JAL_S_40_U_40_UP2", "JAL_S_50_U_40_UP2", "JAL_S_60_U_40_UP2", "JAL_S_70_U_40_UP2", "JAL_S_80_U_40_UP2", "JAL_S_90_U_40_UP2", "JAL_S_100_U_40_UP2"]
-store_dirs_JAL = ["JAL_S_50_U_100", "JAL_S_75_U_100", "JAL_S_100_U_100", "JAL_S_133_U_100", "JAL_S_160_U_100", "JAL_S_200_U_100", "JAL_S_225_U_100"]
 store_dirs_dist = ["Dist_S_10_U_20_UP2", "Dist_S_15_U_20_UP2", "Dist_S_20_U_20_UP2", "Dist_S_25_U_20_UP2", "Dist_S_30_U_20_UP2", "Dist_S_35_U_20_UP2", "Dist_S_40_U_20_UP2"]
 store_dirs_rd = ["Random_S_10_U_20_UP2", "Random_S_15_U_20_UP2", "Random_S_20_U_20_UP2", "Random_S_25_U_20_UP2", "Random_S_32_U_20_UP2", "Random_S_40_U_20_UP2", "Random_S_50_U_20_UP2"]
 
@@ -247,7 +260,7 @@ methods_data = [
     #(store_dirs_dist, gains_dist, "OT1", "purple", '^', users_dist)
 ]
 
-plot_gain_vs_aaoi_multi_comparison(methods_data, output_file="comparison_gain_vs_aaoi_il.pdf")
+plot_gain_vs_aaoi_multi_comparison(methods_data, output_file="comparison_gain_vs_aaoi_dOT.pdf")
 
 
 

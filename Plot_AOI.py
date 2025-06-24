@@ -74,11 +74,13 @@ if not BASE_DIR.exists():
 # ——————————————————————————————————
 # 2) construct the per‐experiment subfolder
 # ——————————————————————————————————
-slots = 100
+slots = 250
 users = 100
 
+BASE_DIR_IL = Path (BASE_DIR / r"E:\IL_U100")
+
 subfolder = f"IL_S_{slots}_U_{users}_UP_020"
-Out_dir = BASE_DIR / subfolder
+Out_dir = BASE_DIR_IL / subfolder
 
 # (optional) if your load_… functions expect a str rather than a Path
 Out_dir = str(Out_dir)
