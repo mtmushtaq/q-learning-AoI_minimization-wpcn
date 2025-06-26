@@ -244,8 +244,6 @@ def plot_gain_vs_aaoi_multi_comparison(
 
 # Combine each directory with BASE_DIR
 full_paths_IL = [BASE_DIR_IL / subdir for subdir in store_dirs_IL]
-
-# Optional: convert to string paths if needed
 full_paths_IL = [str(path) for path in full_paths_IL]
 
 full_paths_JAL = [BASE_DIR_JAL / subdir for subdir in store_dirs_JAL]
