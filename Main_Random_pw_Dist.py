@@ -35,7 +35,7 @@ test = 100
 learning_rate = 0.0002
 #define system parameters
 mu_bu= 0.05 # initial one unit of battery
-number_of_slots = 50
+number_of_slots = 75
 number_of_users = 100
 time_duration = 0.02
 p= 4.6
@@ -66,7 +66,7 @@ chg_slots = 80
 k = np.array([0, 1, 2, 3, 4, 5])  # possible power values
 x = np.array([0, 1, 2, 3, 4, 5, 6, 7])  # channel quality information
 a = np.array([0, 1, 2, 3, 4, 5])
-Out_dir  = "Dist_S_50_U_100_UP005"
+Out_dir  = "Dist_S_75_U_100_UP005"
 # S = ((), dtype=float)
 #S = np.zeros((u.size, k.size, x.size), dtype=int)
 
@@ -2631,11 +2631,11 @@ for t in range(test):
 
 #plot_aoi_evolution(AOI_test_iter, smoothing_window=1000)
 
-AOI_test_iter_all = load_test_matrix_npy("AOI_test_iter", Out_dir)
+#AOI_test_iter_all = load_test_matrix_npy("AOI_test_iter", Out_dir)
 
 #plot_aoi_testwise(AOI_test_iter_all, smoothing_window=30)
 
-plot_final_aoi_per_test(AOI_test_iter_all, smoothing_window=30)
+#plot_final_aoi_per_test(AOI_test_iter_all, smoothing_window=30)
 
 #plot_action_reward_contour(CH_user_tests, BT_user_tests, REW_user_tests, mode="global", value_label="Reward")
 #plot_action_reward_contour(CH_user_tests, BT_user_tests, AC_user_tests, mode="global", value_label="Action")
