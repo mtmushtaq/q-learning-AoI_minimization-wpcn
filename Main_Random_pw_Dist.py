@@ -31,16 +31,16 @@ from mpl_toolkits.mplot3d import Axes3D
 # This code with an optimized Learning rate= 0.5, But we need to find the value of Epsilon for good convergence
 # define training parameters
 discount_factor = 0.99  # 0.001
-test = 200
+test = 100
 learning_rate = 0.0002
 #define system parameters
 mu_bu= 0.05 # initial one unit of battery
-number_of_slots = 10
-number_of_users = 20
+number_of_slots = 50
+number_of_users = 100
 time_duration = 0.02
 p= 4.6
 dist_min = 1
-dist_max = 8
+dist_max = 7
 s_AAOI = []
 Gain = []
 Th= 0.2
@@ -56,7 +56,7 @@ explore = 0
 exploit = 0
 K_factor =  12
 decay_rate = 0.0009
-upsilon = 0.02 # One unit to transmit one replica
+upsilon = 0.005 # One unit to transmit one replica
 d_slot = 1
 chg_slots = 80
 #u = np.empty(number_of_users, dtype=object)  # define users array
@@ -66,7 +66,7 @@ chg_slots = 80
 k = np.array([0, 1, 2, 3, 4, 5])  # possible power values
 x = np.array([0, 1, 2, 3, 4, 5, 6, 7])  # channel quality information
 a = np.array([0, 1, 2, 3, 4, 5])
-Out_dir  = "Dist_S_10_U_20_UP2"
+Out_dir  = "Dist_S_50_U_100_UP005"
 # S = ((), dtype=float)
 #S = np.zeros((u.size, k.size, x.size), dtype=int)
 
@@ -2273,15 +2273,17 @@ for t in range(1, test+1):
             bt_units = users[d].BT_units()
             if bt_units > number_of_slots:
                 bt_units = number_of_slots
-            prob_dist = np.array([0.5624, 0.0891, 0.3485])#get_distr(bt_units)
+            degree_values = np.array([3, 4, 5, 6,])  # Corresponds to x^6, x^7, x^8
+            prob_dist = np.array([0.311, 0.277, 0.196, 0.216])  # From Table VI
+
             if bt_units == 0:
                 slot_aloc_f [d,:] = np.zeros ((1, number_of_slots), dtype=int)
                 AC_users [d] = 0
                 #print(f"Random Action of User {d} is {0}")
             else:
                 range_slot = np.array(range(0, number_of_slots), dtype=int) # to ask it to make a choice between first and last slot
-                range_action = np.array(range(1, len(prob_dist)+1), dtype=int) # to choose an action between 1 and max_battery unit with prob_dist
-                user_action = np.random.choice(range_action, size=1, p=prob_dist) # choose an action based on prob_dist
+                #range_action = np.array(range(1, len(prob_dist)+1), dtype=int) # to choose an action between 1 and max_battery unit with prob_dist
+                user_action = np.random.choice(degree_values, p=prob_dist) # choose an action based on prob_dist
                 if user_action > a.size:
                     user_action  = a.size
                 if user_action > bt_units:

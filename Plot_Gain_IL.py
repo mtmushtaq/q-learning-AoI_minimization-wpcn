@@ -37,8 +37,8 @@ users_dist = 20
 slots_dist = [10, 15, 20, 25, 30, 35, 40]
 gains_dist = [round(users_dist / s, 3) for s in slots_dist]
 
-users_rd = 20
-slots_rd = [10, 15, 20, 25, 32, 40, 50]
+users_rd = 100
+slots_rd = [250, 225, 200, 160, 133, 100, 75, 50]
 gains_rd = [round(users_rd / s, 3) for s in slots_rd]
 
 BASE_DIR = Path(
@@ -53,8 +53,11 @@ BASE_DIR_JAL = Path(
     r"E:\JAL_U100"
 )
 
-store_dirs_dist = ["Dist_S_10_U_20_UP2", "Dist_S_15_U_20_UP2", "Dist_S_20_U_20_UP2", "Dist_S_25_U_20_UP2", "Dist_S_30_U_20_UP2", "Dist_S_35_U_20_UP2", "Dist_S_40_U_20_UP2"]
-store_dirs_rd = ["Random_S_10_U_20_UP2", "Random_S_15_U_20_UP2", "Random_S_20_U_20_UP2", "Random_S_25_U_20_UP2", "Random_S_32_U_20_UP2", "Random_S_40_U_20_UP2", "Random_S_50_U_20_UP2"]
+
+BASE_DIR_RD = Path(r"E:\Random_U100"
+                   )
+#store_dirs_dist = ["Dist_S_10_U_20_UP2", "Dist_S_15_U_20_UP2", "Dist_S_20_U_20_UP2", "Dist_S_25_U_20_UP2", "Dist_S_30_U_20_UP2", "Dist_S_35_U_20_UP2", "Dist_S_40_U_20_UP2"]
+store_dirs_rd = ["Random_S_250_U_100", "Random_S_225_U_100", "Random_S_200_U_100", "Random_S_160_U_100", "Random_S_133_U_100", "Random_S_100_U_100", "Random_S_75_U_100", "Random_S_50_U_100"]
 
 def plot_gain_vs_aaoi_from_dirs(store_dirs, gains, label="IL", color="blue", output_file="IL_gain_vs_aaoi.pdf"):
     """
@@ -246,6 +249,9 @@ full_paths_IL = [str(path) for path in full_paths_IL]
 full_paths_JAL = [BASE_DIR_JAL / subdir for subdir in store_dirs_JAL]
 full_paths_JAL = [str(path) for path in full_paths_JAL]
 
+full_paths_RD = [BASE_DIR_RD / subdir for subdir in store_dirs_rd]
+full_paths_RD = [str(path) for path in full_paths_RD]
+
 methods_data = [
     # IL
     (full_paths_IL , gains_IL, "IL", "blue", 'o', users_IL),
@@ -254,13 +260,13 @@ methods_data = [
     (full_paths_JAL, gains_JAL, "JAL", "darkorange", 's', users_JAL),
 
     # Random
-    #(store_dirs_rd, gains_rd, "Random", "green", 'D', users_rd),
+    (full_paths_RD , gains_rd, "Random", "green", 'D', users_rd),
 
     # Fixed Distribution
     #(store_dirs_dist, gains_dist, "OT1", "purple", '^', users_dist)
 ]
 
-plot_gain_vs_aaoi_multi_comparison(methods_data, output_file="comparison_gain_vs_aaoi_dOT.pdf")
+plot_gain_vs_aaoi_multi_comparison(methods_data, output_file="comparison_gain_vs_aaoi_Random.pdf")
 
 
 
