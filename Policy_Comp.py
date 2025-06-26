@@ -37,82 +37,78 @@ AC_user_JAL = load_test_matrix_npy("AC_user_tests", full_paths_JAL[0])[:100,:,:]
 AC_user_dist = load_test_matrix_npy("AC_user_tests", full_paths_dist[0])[:100,:,:]
 
 
-import matplotlib.pyplot as plt
-import numpy as np
-import os
-
-def plot_action_policy_from_arrays(
+def plot_action_distribution_comparison_IL_JAL_DIST(
     AC_user_IL,
     AC_user_JAL,
-    AC_user_dist,
-    output_folder,
-    output_name="policy_comparison_generic",
-    dpi=600
+    AC_user_DIST,
+    output_dir="plots",
+    output_filename="IL_JAL_DIST_action_prob_trend.pdf"
 ):
     """
-    Plot action policy evolution for three methods from already loaded numpy arrays.
+    Plot IL, JAL, and DIST action distribution evolution over tests in one figure.
 
-    Parameters:
-    - AC_user_IL, AC_user_JAL, AC_user_dist: 3D numpy arrays [test, user, actions]
-    - output_folder: folder to save the figure
-    - output_name: base filename for the PDF
-    - dpi: resolution for PDF
+    AC_user_*: 3D arrays of shape [num_tests, num_users, num_slots] representing slot allocations.
+    Each user’s total 1s in a test/frame is their action (replica count).
     """
-    # Calculate sum over users => get count per action per test
-    def aggregate_action_counts(array):
-        return np.sum(array, axis=1)  # shape becomes [test, action]
+    def compute_action_probabilities(AC_user, max_action=None):
+        num_tests = AC_user.shape[0]
+        actions_per_user = np.sum(AC_user, axis=2)  # shape: [num_tests, num_users]
+        if max_action is None:
+            max_action = np.max(actions_per_user)
+        action_probs = np.zeros((num_tests, max_action + 1))
+        for t in range(num_tests):
+            for a in range(max_action + 1):
+                action_probs[t, a] = np.mean(actions_per_user[t] == a)
+        return action_probs
 
-    IL_counts = aggregate_action_counts(AC_user_IL)
-    JAL_counts = aggregate_action_counts(AC_user_JAL)
-    DIST_counts = aggregate_action_counts(AC_user_dist)
+    # Compute action probabilities
+    prob_IL = compute_action_probabilities(AC_user_IL)
+    prob_JAL = compute_action_probabilities(AC_user_JAL)
+    prob_DIST = compute_action_probabilities(AC_user_DIST)
 
-    num_tests = IL_counts.shape[0]
+    num_tests = prob_IL.shape[0]
     x = np.arange(num_tests)
 
-    fig, ax = plt.subplots(figsize=(10, 6), dpi=dpi)
+    # Plot
+    plt.figure(figsize=(12, 6), dpi=600)
 
-    styles = ['-', '--', '-.']
-    markers = ['o', 's', '^']
-    colors = ['blue', 'green', 'red']
-    labels = ['IL', 'JAL', 'Dist']
-    data_list = [IL_counts, JAL_counts, DIST_counts]
+    for a in range(prob_IL.shape[1]):
+        if np.any(prob_IL[:, a]):
+            plt.plot(x, prob_IL[:, a], linestyle='--', linewidth=2,
+                     marker='o', markevery=10, label=f'IL Action {a}')
 
-    for data, label, color, marker, style in zip(data_list, labels, colors, markers, styles):
-        num_actions = data.shape[1]
-        for act in range(num_actions):
-            ax.plot(
-                x, data[:, act],
-                style,
-                label=f"{label} – Action {act+1}",
-                linewidth=2,
-                color=color,
-                marker=marker,
-                markevery=10,
-                markersize=6,
-                alpha=0.8
-            )
+    for a in range(prob_JAL.shape[1]):
+        if np.any(prob_JAL[:, a]):
+            plt.plot(x, prob_JAL[:, a], linestyle=':', linewidth=2,
+                     marker='s', markevery=10, label=f'JAL Action {a}')
 
-    ax.set_xticks(np.arange(0, num_tests+1, 10))
-    ax.set_xlabel("Test Index", fontsize=12, fontweight='bold')
-    ax.set_ylabel("Number of Users Taking Action", fontsize=12, fontweight='bold')
-    ax.grid(True, linestyle='--', alpha=0.7)
-    ax.legend(fontsize=9, loc='upper right', ncol=2)
-    ax.set_title("Action Policy Evolution Comparison", fontsize=14, fontweight='bold')
+    for a in range(prob_DIST.shape[1]):
+        if np.any(prob_DIST[:, a]):
+            plt.plot(x, prob_DIST[:, a], linestyle='-', linewidth=2,
+                     marker='^', markevery=10, label=f'Dist Action {a}')
+
+    plt.xlabel("Test Index", fontsize=12, fontweight='bold')
+    plt.ylabel("Probability", fontsize=12, fontweight='bold')
+    plt.title("Action Probability Evolution Comparison", fontsize=14, fontweight='bold')
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.xticks(np.arange(0, num_tests + 1, 10), fontsize=10)
+    plt.yticks(fontsize=10)
+    plt.legend(fontsize=9, ncol=3)
     plt.tight_layout()
 
-    os.makedirs(output_folder, exist_ok=True)
-    out_path = os.path.join(output_folder, f"{output_name}.pdf")
-    plt.savefig(out_path, format="pdf", dpi=dpi, bbox_inches='tight')
-    plt.show()
+    os.makedirs(output_dir, exist_ok=True)
+    out_path = os.path.join(output_dir, output_filename)
+    plt.savefig(out_path, format='pdf', dpi=600)
+    plt.close()
 
     return out_path
 
 
-
-plot_action_policy_from_arrays(
+plot_action_distribution_comparison_IL_JAL_DIST(
     AC_user_IL,
     AC_user_JAL,
     AC_user_dist,
-    output_folder="Action_Policy_Dist",
-    output_name="action_policy_comp_dist"
+    output_dir="Policy_Comp",
+    output_filename="comp_J_I_d.pdf"
 )
+
