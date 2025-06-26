@@ -93,7 +93,7 @@ def plot_action_distribution_comparison_IL_JAL_DIST_final(
 
     plt.xlabel("Test Index", fontsize=13, fontweight='bold')
     plt.ylabel("Probability", fontsize=13, fontweight='bold')
-    plt.title(r"Action Probability Evolution Comparison $G = 0.5$", fontsize=15, fontweight='bold')
+    plt.title(r"Action Probability Evolution Comparison $G = 0.75$", fontsize=15, fontweight='bold')
     plt.grid(True, linestyle='--', alpha=0.6)
     plt.legend(fontsize='small', ncol=2)
     plt.xticks(np.arange(0, num_tests + 1, 10), fontsize=11, fontweight='bold')
