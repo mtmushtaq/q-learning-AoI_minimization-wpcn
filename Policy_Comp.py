@@ -15,18 +15,18 @@ import os
 
 
 BASE_DIR_DIST = Path(r"E:\Dist_U100")
-store_dirs_dist = ["Dist_S_133_U_100"]
+store_dirs_dist = ["Dist_S_200_U_100"]
 full_paths_dist = [BASE_DIR_DIST / subdir for subdir in store_dirs_dist]
 full_paths_dist = [str(path) for path in full_paths_dist]
 
 BASE_DIR_IL = Path (r"E:\IL_U100")
 BASE_DIR_JAL = Path(r"E:\JAL_U100")
 
-store_dirs_IL = ["IL_S_133_U_100_UP_020"]
+store_dirs_IL = ["IL_S_200_U_100_UP_020"]
 full_paths_IL = [BASE_DIR_IL / subdir for subdir in store_dirs_IL]
 full_paths_IL = [str(path) for path in full_paths_IL]
 
-store_dirs_JAL = ["JAL_S_133_U_100"]
+store_dirs_JAL = ["JAL_S_200_U_100"]
 full_paths_JAL = [BASE_DIR_JAL / subdir for subdir in store_dirs_JAL]
 full_paths_JAL = [str(path) for path in full_paths_JAL]
 
@@ -82,7 +82,7 @@ def plot_action_distribution_comparison_IL_JAL_DIST_fixed(
 
     plt.xlabel("Test Index", fontsize=13, fontweight='bold')
     plt.ylabel("Probability", fontsize=13, fontweight='bold')
-    plt.title("Action Probability Evolution Comparison", fontsize=15, fontweight='bold')
+    plt.title(r"Action Probability Evolution Comparison $G = 0.5$ ", fontsize=15, fontweight='bold')
     plt.grid(True, linestyle='--', alpha=0.6)
     plt.legend(fontsize='small', ncol=2)
     plt.xticks(np.arange(0, num_tests + 1, 10))
@@ -101,6 +101,6 @@ plot_action_distribution_comparison_IL_JAL_DIST_fixed(
     AC_user_JAL,
     AC_user_dist,
     output_dir="Policy_Comp",
-    output_filename="IJD_AC_plot.pdf"
+    output_filename="IJD_AC_plotG05.pdf"
 )
 
