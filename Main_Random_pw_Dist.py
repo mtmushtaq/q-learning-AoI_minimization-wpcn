@@ -2273,7 +2273,7 @@ for t in range(1, test+1):
             bt_units = users[d].BT_units()
             if bt_units > number_of_slots:
                 bt_units = number_of_slots
-            degree_values = np.array([3, 4, 5, 6,])  # Corresponds to x^6, x^7, x^8
+            degree_values = np.array([3, 4, 5, 6])  # Corresponds to x^6, x^7, x^8
             prob_dist = np.array([0.311, 0.277, 0.196, 0.216])  # From Table VI
 
             if bt_units == 0:
