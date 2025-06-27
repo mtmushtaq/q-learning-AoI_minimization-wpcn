@@ -25,19 +25,54 @@ import seaborn as sns
 from data_npy_io import *
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d import Axes3D
+from pathlib import Path
+import os
 
-Out_dir_JAL = "JAL_S_70_U_40_UP2"
-Out_dir_IL = "S_70_U_40_UP_020"
 
-AC_user_IL = load_test_matrix_npy("AC_user_tests", Out_dir_IL)[:200,:,:]
-Bt_user_IL = load_test_vector_npy("BT_user_tests", Out_dir_IL)[:200,:,:]
-CH_user_IL = load_test_matrix_npy("CH_user_tests", Out_dir_IL)[:200,:,:]
-#AOI_IL = load_test_matrix_npy("AOI_test_iter", Out_dir_IL)
+BASE_DIR_DIST = Path(r"E:\Dist_U100")
+store_dirs_dist = ["Dist_S_100_U_100"]
+full_paths_dist = [BASE_DIR_DIST / subdir for subdir in store_dirs_dist]
+full_paths_dist = [str(path) for path in full_paths_dist]
 
-AC_user_JAL = load_test_matrix_npy("AC_user_tests", Out_dir_JAL)[:200,:,:]
-Bt_user_JAL = load_test_vector_npy("BT_user_tests", Out_dir_JAL)[:200,:,:]
-CH_user_JAL = load_test_matrix_npy("CH_user_tests", Out_dir_JAL)[:200,:,:]
-#AOI_JAl = load_test_matrix_npy("AOI_test_iter", Out_dir_JAL)[:200,:,:]
+BASE_DIR_RD = Path(r"E:\Random_U100")
+store_dirs_rd = ["Random_S_100_U_100"]
+full_paths_rd = [BASE_DIR_RD / subdir for subdir in store_dirs_rd]
+full_paths_rd = [str(path) for path in full_paths_rd]
+
+BASE_DIR_IL = Path (r"E:\IL_U100")
+BASE_DIR_JAL = Path(r"E:\JAL_U100")
+
+store_dirs_IL = ["IL_S_100_U_100_UP_020"]
+full_paths_IL = [BASE_DIR_IL / subdir for subdir in store_dirs_IL]
+full_paths_IL = [str(path) for path in full_paths_IL]
+
+store_dirs_JAL = ["JAL_S_100_U_100"]
+full_paths_JAL = [BASE_DIR_JAL / subdir for subdir in store_dirs_JAL]
+full_paths_JAL = [str(path) for path in full_paths_JAL]
+
+
+AC_user_IL = load_test_matrix_npy("AC_user_tests", full_paths_IL[0])[:200,:,:]
+Bt_user_IL = load_test_vector_npy("BT_user_tests", full_paths_IL[0])[:200,:,:]
+CH_user_IL = load_test_matrix_npy("CH_user_tests", full_paths_IL[0])[:200,:,:]
+AOI_IL = load_test_matrix_npy("AOI_test_iter", full_paths_IL[0])[:200,:,:]
+
+AC_user_JAL = load_test_matrix_npy("AC_user_tests", full_paths_JAL[0])[:200,:,:]
+Bt_user_JAL = load_test_vector_npy("BT_user_tests", full_paths_JAL[0])[:200,:,:]
+CH_user_JAL = load_test_matrix_npy("CH_user_tests", full_paths_JAL[0])[:200,:,:]
+AOI_JAl = load_test_matrix_npy("AOI_test_iter", full_paths_JAL[0])[:200,:,:]
+
+AC_user_Dist = load_test_matrix_npy("AC_user_tests", full_paths_dist[0])[:100,:,:]
+Bt_user_Dist = load_test_vector_npy("BT_user_tests", full_paths_dist[0])[:100,:,:]
+CH_user_Dist = load_test_matrix_npy("CH_user_tests", full_paths_dist[0])[:100,:,:]
+AOI_Dist = load_test_matrix_npy("AOI_test_iter", full_paths_dist[0])[:100,:,:]
+
+AC_user_Random = load_test_matrix_npy("AC_user_tests", full_paths_rd[0])[:100,:,:]
+Bt_user_Random = load_test_vector_npy("BT_user_tests", full_paths_rd[0])[:100,:,:]
+CH_user_Random = load_test_matrix_npy("CH_user_tests", full_paths_rd[0])[:100,:,:]
+AOI_Random = load_test_matrix_npy("AOI_test_iter", full_paths_rd[0])[:100,:,:]
+
+
+
 
 
 def compute_battery_per_update_general(AOI, AC, slots):
@@ -83,7 +118,7 @@ def plot_battery_efficiency_multiple_algorithms(
     bin_centers = bins[:-1]
     width = 0.8 / len(consumption_dict)
 
-    plt.figure(figsize=(10, 6), dpi=400)
+    plt.figure(figsize=(10, 6), dpi=600)
 
     for idx, (label, consumption) in enumerate(consumption_dict.items()):
         hist, _ = np.histogram(consumption, bins=bins)
@@ -92,6 +127,7 @@ def plot_battery_efficiency_multiple_algorithms(
                 width=width, label=label)
 
     plt.xticks(bin_centers, fontweight='bold')
+    plt.yticks(fontweight='bold')
     plt.xlabel("Accumulated Battery Consumption per Update", fontsize=12, fontweight='bold')
     plt.ylabel("Percentage of Updates (%)", fontsize=12, fontweight='bold')
     plt.title("Battery Cost per AoI Update", fontsize=14, fontweight='bold')
@@ -108,7 +144,7 @@ def plot_battery_efficiency_multiple_algorithms(
 
 
 def plot_cdf_battery_efficiency(data_dict, max_battery=15, output_dir="plots", filename="battery_efficiency_cdf.pdf"):
-    plt.figure(figsize=(10, 6), dpi=400)
+    plt.figure(figsize=(10, 6), dpi=600)
 
     for label, (AOI, AC, slots) in data_dict.items():
         consumption = compute_battery_per_update_general(AOI, AC, slots)
@@ -129,15 +165,20 @@ def plot_cdf_battery_efficiency(data_dict, max_battery=15, output_dir="plots", f
 
 
 # Example dummy input structure (replace with your loaded npy files)
-slots_IL = 8
-slots_JAL = 8
+slots_IL = 100
+slots_JAL = 100
+slots_Dist = 100
+slots_Random = 100
+
 data_dict = {
     "IL": (AOI_IL, AC_user_IL, slots_IL),
     "JAL": (AOI_JAl, AC_user_JAL, slots_JAL),
+    "Dist": (AOI_Dist, AC_user_Dist, slots_Dist),
+    "Random": (AOI_Random, AC_user_Random, slots_Random)
 }
 
 # Full Histogram Plot:
-plot_battery_efficiency_multiple_algorithms(data_dict, max_battery=15,  save_pdf=True, output_dir="BTresults", filename="battery_hist.pdf")
+plot_battery_efficiency_multiple_algorithms(data_dict, max_battery=8,  save_pdf=True, output_dir="BTresults", filename="battery_histG1.pdf")
 
 # CDF Plot:
-plot_cdf_battery_efficiency(data_dict, max_battery=15, output_dir="BTresults", filename="battery_cdf.pdf")
+plot_cdf_battery_efficiency(data_dict, max_battery=8, output_dir="BTresults", filename="battery_cdfG1.pdf")
