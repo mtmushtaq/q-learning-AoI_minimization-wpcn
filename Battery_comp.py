@@ -12,23 +12,23 @@ from pathlib import Path
 import os
 
 BASE_DIR_DIST = Path(r"E:\Dist_U100")
-store_dirs_dist = ["Dist_S_50_U_100"]
+store_dirs_dist = ["Dist_S_100_U_100"]
 full_paths_dist = [BASE_DIR_DIST / subdir for subdir in store_dirs_dist]
 full_paths_dist = [str(path) for path in full_paths_dist]
 
 BASE_DIR_RD = Path(r"E:\Random_U100")
-store_dirs_rd = ["Random_S_50_U_100"]
+store_dirs_rd = ["Random_S_100_U_100"]
 full_paths_rd = [BASE_DIR_RD / subdir for subdir in store_dirs_rd]
 full_paths_rd = [str(path) for path in full_paths_rd]
 
 BASE_DIR_IL = Path (r"E:\IL_U100")
 BASE_DIR_JAL = Path(r"E:\JAL_U100")
 
-store_dirs_IL = ["IL_S_50_U_100_UP_020"]
+store_dirs_IL = ["IL_S_100_U_100_UP_020"]
 full_paths_IL = [BASE_DIR_IL / subdir for subdir in store_dirs_IL]
 full_paths_IL = [str(path) for path in full_paths_IL]
 
-store_dirs_JAL = ["JAL_S_50_U_100"]
+store_dirs_JAL = ["JAL_S_100_U_100"]
 full_paths_JAL = [BASE_DIR_JAL / subdir for subdir in store_dirs_JAL]
 full_paths_JAL = [str(path) for path in full_paths_JAL]
 
@@ -141,5 +141,5 @@ def compare_battery_mean_overall_fixed_methods(
 
 BT_dict = {"IL": BT_user_IL, "JAL": BT_user_JAL, "Dist": BT_user_Dist, "Random": BT_user_Random}
 
-compare_battery_per_user_fixed_methods(BT_dict, "BatteryPlots", "BT_Users20", gain_value=2)
-compare_battery_mean_overall_fixed_methods(BT_dict, "BatteryPlots", "BT_Mean20", gain_value=2)
+compare_battery_per_user_fixed_methods(BT_dict, "BatteryPlots", "BT_Users10", gain_value=1)
+compare_battery_mean_overall_fixed_methods(BT_dict, "BatteryPlots", "BT_Mean10", gain_value=1)
