@@ -30,8 +30,8 @@ class User:
 
     def BT_units(self) -> int:
         units = math.floor(self.battery_level / self.mu) # compute the number of packets that can be transmitted
-        if units > 12:
-            units = 12 # our user can max save 5 units of battery, extra battery is overflow which cannot be saved
+        if units > 5:
+            units = 5 # our user can max save 5 units of battery, extra battery is overflow which cannot be saved
         return units
 
     def channel (self, channel) -> complex:

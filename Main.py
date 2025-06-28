@@ -31,11 +31,11 @@ from mpl_toolkits.mplot3d import Axes3D
 # This code with an optimized Learning rate= 0.5, But we need to find the value of Epsilon for good convergence
 # define training parameters
 discount_factor = 0.99  # 0.001
-test = 200
+test = 100
 learning_rate = 0.0001
 #define system parameters
 mu_bu= 0.05 # one unit of battery
-number_of_slots = 56
+number_of_slots = 250
 number_of_users = 100
 time_duration = 0.02
 p= 4.6
@@ -66,7 +66,7 @@ chg_slots = 80
 k = np.array([0, 1, 2, 3, 4, 5])  # possible power values
 x = np.array([0, 1, 2, 3, 4, 5, 6, 7])  # channel quality information
 a = np.array([0, 1, 2, 3, 4, 5])
-Out_dir  = "IL_S_56_U_100_UP_020"
+Out_dir  = "IL_S_250_U_100"
 # S = ((), dtype=float)
 #S = np.zeros((u.size, k.size, x.size), dtype=int)
 
@@ -253,9 +253,9 @@ def get_rew(B_AOI, A_AOI, BT, act, ch, max_AOI=100, max_BT=5, w1=0.9, w2=0.6, w3
 
 
 def get_distr(pw):
-    #if pw == 0:
-    distr = 0
-      #  return distr
+    if pw == 0:
+        distr = np.array([0])
+        return distr
     if pw == 1:
         distr = np.array([1])
         return distr
@@ -275,7 +275,7 @@ def get_distr(pw):
         distr = np.array([0.6, 0.2, 0.1, 0.06, 0.04])
         #distr = np.array([0.2, 0.2, 0.2, 0.2, 0.2])
         return distr
-    return distr
+
 
 def plot_action_reward_relations(AC_user_Mean, CH_mean, Battery_mean, Rew_u_mean, slots, smoothing_span=50):
     frames = np.arange(len(AC_user_Mean))
@@ -2291,7 +2291,7 @@ for t in range(1, test+1):
                     slot_indices = np.random.choice(range_slot, size=user_action, replace=False) #choose random slots to send the packet
                     slot_aloc_f[d, slot_indices] = 1  #Make selected slots 1 for user's row
                     users[d].decrease_EH(user_action)
-                    BT_Dis[d] = users[d].BT_units()
+                    #BT_Dis[d] = users[d].BT_units()
                     AC_users[d] = user_action[0]
                     #print(f"Random Action of User {d} is {user_action}")
                 #slot_aloc_f [d-1, :]
@@ -2361,7 +2361,7 @@ for t in range(1, test+1):
                 #    if u == user_to_transmit:
                 pw_u = compute_energy_harvested(G_Raw[u], time_duration, p)
                 users[u].add_EH(pw_u)
-                BT_Dis[u] = users[u].BT_units()
+                #BT_Dis[u] = users[u].BT_units()
 
         # apply SIC
         decoded_users = capture_effect_SIC_realtime(slot_aloc_f, number_of_slots, number_of_users, G_Raw, verbose=False) # Rearly-n method
