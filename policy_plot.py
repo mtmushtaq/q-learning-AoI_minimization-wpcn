@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-
+from pathlib import Path
 
 from scipy.interpolate import griddata
 import matplotlib.pyplot as plt
@@ -11,17 +11,25 @@ from data_npy_io import *
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d import Axes3D
 
-Out_dir_JAL = "JALP_S_60_U_20_K5"
-Out_dir_IL = "P_S_60_U_20_AOI_K5"
+BASE_DIR_IL = Path (r"E:\IL_U100")
+BASE_DIR_JAL = Path(r"E:\JAL_U100")
 
-AC_user_IL = load_test_matrix_npy("AC_user_tests", Out_dir_IL)
-Bt_user_IL = load_test_vector_npy("BT_user_tests", Out_dir_IL)
-CH_user_IL = load_test_matrix_npy("CH_user_tests", Out_dir_IL)
+store_dirs_IL = ["IL_S_250_U_100_UP_020"]
+full_paths_IL = [BASE_DIR_IL / subdir for subdir in store_dirs_IL]
+full_paths_IL = [str(path) for path in full_paths_IL]
+
+store_dirs_JAL = ["JAL_S_250_U_100"]
+full_paths_JAL = [BASE_DIR_JAL / subdir for subdir in store_dirs_JAL]
+full_paths_JAL = [str(path) for path in full_paths_JAL]
+
+AC_user_IL = load_test_matrix_npy("AC_user_tests", full_paths_IL[0])
+Bt_user_IL = load_test_vector_npy("BT_user_tests", full_paths_IL[0])
+CH_user_IL = load_test_matrix_npy("CH_user_tests", full_paths_IL[0])
 
 
-AC_user_JAL = load_test_matrix_npy("AC_user_tests", Out_dir_JAL)[:200,:,:]
-Bt_user_JAL = load_test_vector_npy("BT_user_tests", Out_dir_JAL)[:200,:,:]
-CH_user_JAL = load_test_matrix_npy("CH_user_tests", Out_dir_JAL)[:200,:,:]
+AC_user_JAL = load_test_matrix_npy("AC_user_tests", full_paths_JAL[0])[:200,:,:]
+Bt_user_JAL = load_test_vector_npy("BT_user_tests", full_paths_JAL[0])[:200,:,:]
+CH_user_JAL = load_test_matrix_npy("CH_user_tests", full_paths_JAL[0])[:200,:,:]
 
 
 def plot_discrete_joint_decision_comparison(
@@ -206,14 +214,14 @@ def plot_discrete_joint_decision_comparison_scatter(
 plot_discrete_joint_decision_comparison(
     Bt_user_IL, CH_user_IL, AC_user_IL,
     Bt_user_JAL, CH_user_JAL, AC_user_JAL,
-    output_dir="BTresults",
-    output_filename="IL_vs_JAL_binnedU20_S60_K5.pdf"
+    output_dir="scatter_plots",
+    output_filename="IL_vs_JAL_binnedU20_U100_S250.pdf"
 )
 
 
 plot_discrete_joint_decision_comparison_scatter(
     Bt_user_IL, CH_user_IL, AC_user_IL,
     Bt_user_JAL, CH_user_JAL, AC_user_JAL,
-    output_dir="BTresults",
-    output_filename="IL_vs_JAL_policy_scatter_U20_S60_K5.pdf"
+    output_dir="scatter_plots",
+    output_filename="IL_vs_JAL_policy_scatter_U100_S250.pdf"
 )
