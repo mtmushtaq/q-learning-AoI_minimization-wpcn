@@ -31,11 +31,11 @@ from mpl_toolkits.mplot3d import Axes3D
 # This code with an optimized Learning rate= 0.5, But we need to find the value of Epsilon for good convergence
 # define training parameters
 discount_factor = 0.99  # 0.001
-test = 100
+test = 20
 learning_rate = 0.0001
 #define system parameters
 mu_bu= 0.05 # one unit of battery
-number_of_slots = 250
+number_of_slots = 200
 number_of_users = 100
 time_duration = 0.02
 p= 4.6
@@ -66,7 +66,7 @@ chg_slots = 80
 k = np.array([0, 1, 2, 3, 4, 5])  # possible power values
 x = np.array([0, 1, 2, 3, 4, 5, 6, 7])  # channel quality information
 a = np.array([0, 1, 2, 3, 4, 5])
-Out_dir  = "IL_S_250_U_100"
+Out_dir  = "IL_S_200_U_100"
 # S = ((), dtype=float)
 #S = np.zeros((u.size, k.size, x.size), dtype=int)
 
@@ -2284,15 +2284,19 @@ for t in range(1, test+1):
                     #print(f"Random Action of User {d} is {0}")
                 else:
                     range_slot = np.array(range(0, number_of_slots), dtype=int) # to ask it to make a choice between first and last slot
-                    range_action = np.array(range(1, len(prob_dist)+1), dtype=int) # to choose an action between 1 and max_battery unit with prob_dist
+                    range_action = np.arange(1, bt_units + 1)
+                    #range_action = np.array(range(1, len(prob_dist)+1), dtype=int) # to choose an action between 1 and max_battery unit with prob_dist
                     user_action = np.random.choice(range_action, size=1, p=prob_dist) # choose an action based on prob_dist
+                    user_action = user_action[0]
                     if user_action > a.size:
                         user_action  = a.size
+                    if user_action > BT_Dis[d]:
+                        user_action = BT_Dis[d]
                     slot_indices = np.random.choice(range_slot, size=user_action, replace=False) #choose random slots to send the packet
                     slot_aloc_f[d, slot_indices] = 1  #Make selected slots 1 for user's row
                     users[d].decrease_EH(user_action)
                     #BT_Dis[d] = users[d].BT_units()
-                    AC_users[d] = user_action[0]
+                    AC_users[d] = user_action
                     #print(f"Random Action of User {d} is {user_action}")
                 #slot_aloc_f [d-1, :]
                 #reward[d][it_ind] = get_rew(action)
@@ -2337,7 +2341,7 @@ for t in range(1, test+1):
                     ind_u = np.random.choice(number_of_slots , size= action, replace=False) #rd.sample(range(number_of_slots), action)
                     slot_aloc_f[d , ind_u] = 1
                     users[d].decrease_EH(action) #update battery
-                    BT_Dis[d] = users[d].BT_units()
+                    #BT_Dis[d] = users[d].BT_units()
                 AC_users[d] = action
                 #print(f"take action: {action}")
                 #reward[d][it_ind] = get_rew(action)

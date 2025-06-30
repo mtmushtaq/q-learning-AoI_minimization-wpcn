@@ -31,7 +31,7 @@ from mpl_toolkits.mplot3d import Axes3D
 # This code with an optimized Learning rate= 0.5, But we need to find the value of Epsilon for good convergence
 # define training parameters
 discount_factor = 0.99  # 0.001
-test = 200
+test = 100
 learning_rate = 0.0001
 #define system parameters
 mu_bu= 0.05 # initial one unit of battery

@@ -30,9 +30,12 @@ store_dirs_JAL = ["JAL_S_133_U_100"]
 full_paths_JAL = [BASE_DIR_JAL / subdir for subdir in store_dirs_JAL]
 full_paths_JAL = [str(path) for path in full_paths_JAL]
 
-AC_user_IL = load_test_matrix_npy("AC_user_tests", full_paths_IL[0])[:100,:,:]
+path_IL = "IL_S_250_U_100"
+path_JAL = "JAL_S_250_U_100_2"
 
-AC_user_JAL = load_test_matrix_npy("AC_user_tests", full_paths_JAL[0])[:100,:,:]
+AC_user_IL = load_test_matrix_npy("AC_user_tests", path_IL)[:100,:,:]
+
+AC_user_JAL = load_test_matrix_npy("AC_user_tests", path_JAL)[:100,:,:]
 
 AC_user_dist = load_test_matrix_npy("AC_user_tests", full_paths_dist[0])[:100,:,:]
 

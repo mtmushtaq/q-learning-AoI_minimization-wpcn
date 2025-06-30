@@ -22,14 +22,17 @@ store_dirs_JAL = ["JAL_S_250_U_100"]
 full_paths_JAL = [BASE_DIR_JAL / subdir for subdir in store_dirs_JAL]
 full_paths_JAL = [str(path) for path in full_paths_JAL]
 
-AC_user_IL = load_test_matrix_npy("AC_user_tests", full_paths_IL[0])
-Bt_user_IL = load_test_vector_npy("BT_user_tests", full_paths_IL[0])
-CH_user_IL = load_test_matrix_npy("CH_user_tests", full_paths_IL[0])
+path_IL = "IL_S_200_U_100"
+path_JAL = "JAL_S_250_U_100_2"
+
+AC_user_IL = load_test_matrix_npy("AC_user_tests", path_IL)
+Bt_user_IL = load_test_vector_npy("BT_user_tests", path_IL)
+CH_user_IL = load_test_matrix_npy("CH_user_tests", path_IL)
 
 
-AC_user_JAL = load_test_matrix_npy("AC_user_tests", full_paths_JAL[0])[:200,:,:]
-Bt_user_JAL = load_test_vector_npy("BT_user_tests", full_paths_JAL[0])[:200,:,:]
-CH_user_JAL = load_test_matrix_npy("CH_user_tests", full_paths_JAL[0])[:200,:,:]
+AC_user_JAL = load_test_matrix_npy("AC_user_tests", path_JAL)[:100,:,:]
+Bt_user_JAL = load_test_vector_npy("BT_user_tests", path_JAL)[:100,:,:]
+CH_user_JAL = load_test_matrix_npy("CH_user_tests", path_JAL)[:100,:,:]
 
 
 def plot_discrete_joint_decision_comparison(
@@ -215,7 +218,7 @@ plot_discrete_joint_decision_comparison(
     Bt_user_IL, CH_user_IL, AC_user_IL,
     Bt_user_JAL, CH_user_JAL, AC_user_JAL,
     output_dir="scatter_plots",
-    output_filename="IL_vs_JAL_binnedU20_U100_S250.pdf"
+    output_filename="IL_vs_JAL_U100_S200.pdf"
 )
 
 
@@ -223,5 +226,5 @@ plot_discrete_joint_decision_comparison_scatter(
     Bt_user_IL, CH_user_IL, AC_user_IL,
     Bt_user_JAL, CH_user_JAL, AC_user_JAL,
     output_dir="scatter_plots",
-    output_filename="IL_vs_JAL_policy_scatter_U100_S250.pdf"
+    output_filename="IL_vs_JAL_scatter_U100_S200.pdf"
 )
