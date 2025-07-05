@@ -13,7 +13,7 @@ channel_levels = 8   # 0..7
 
 # Directories
 BASE_DIR_IL  = Path(r"E:/IL_U100")
-BASE_DIR_JAL = Path(r"C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q learning Paper\Data July\JAL_U100")
+BASE_DIR_JAL = Path(r"C:/Users/Tauseef/.../JAL_U100")
 
 # Helper: load full matrices for a given method and slot
 def load_data(method, slot):
@@ -25,22 +25,26 @@ def load_data(method, slot):
     CH = load_test_matrix_npy("CH_user_tests", str(folder))[:tests_to_plot, :, :]
     return BT, CH, AC
 
-# Build heatmap grid (mean action) for a given method
+# Build heatmap grid (mean action) for a given method over all tests, frames, users
 def compute_action_grid(BT, CH, AC):
     grid_sum = np.zeros((battery_levels, channel_levels))
     grid_count = np.zeros((battery_levels, channel_levels))
-    # accumulate over tests and users
+    # accumulate over tests, frames, and users
+    num_frames = BT.shape[1]
     for t in range(tests_to_plot):
-        for u in range(users):
-            b = int(BT[t, -1, u])  # final battery frame
-            c = int(CH[t, -1, u])  # final channel state
-            a = AC[t, -1, u]       # final action
-            if 0 <= b < battery_levels and 0 <= c < channel_levels:
-                grid_sum[b, c] += a
-                grid_count[b, c] += 1
+        for f in range(num_frames):
+            for u in range(users):
+                b = int(BT[t, f, u])   # battery at each frame
+                c = int(CH[t, f, u])   # channel state at each frame
+                a = AC[t, f, u]        # action at each frame
+                if 0 <= b < battery_levels and 0 <= c < channel_levels:
+                    grid_sum[b, c] += a
+                    grid_count[b, c] += 1
     # compute mean action
     with np.errstate(divide='ignore', invalid='ignore'):
-        grid = np.divide(grid_sum, grid_count, out=np.zeros_like(grid_sum), where=grid_count > 0)
+        grid = np.divide(grid_sum, grid_count,
+                         out=np.zeros_like(grid_sum),
+                         where=grid_count > 0)
     return grid
 
 # Custom colormap: light green to dark purple
@@ -66,7 +70,7 @@ def plot_discrete_joint_decision_comparison(BT_IL, CH_IL, AC_IL,
     norm = Normalize(vmin=vmin, vmax=vmax)
 
     # Heatmaps
-    fig, axs = plt.subplots(1, 2, figsize=(14, 6), dpi=600)
+    fig, axs = plt.subplots(1, 2, figsize=(14, 6), dpi=300)
     for ax, grid, title in zip(axs, [grid_IL, grid_JAL], ['IL', 'JAL']):
         im = ax.imshow(grid, cmap=custom_cmap, norm=norm, origin='lower', aspect='auto')
         ax.set_title(f"{title}: Battery vs Channel Action", fontsize=14, fontweight='bold')
@@ -106,12 +110,12 @@ def plot_discrete_joint_decision_comparison(BT_IL, CH_IL, AC_IL,
 # Usage example
 if __name__ == '__main__':
     # load data for slot=100 or adjust
-    slot = 75
+    slot = 100
     BT_IL, CH_IL, AC_IL   = load_data('IL', slot)
     BT_JAL, CH_JAL, AC_JAL = load_data('JAL', slot)
     plot_discrete_joint_decision_comparison(
         BT_IL, CH_IL, AC_IL,
         BT_JAL, CH_JAL, AC_JAL,
         output_dir="Heatmap_Plots",
-        output_filename="policy_heatmap_S75.pdf"
+        output_filename="policy_heatmap_S100.pdf"
     )
