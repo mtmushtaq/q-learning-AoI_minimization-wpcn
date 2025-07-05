@@ -13,7 +13,7 @@ channel_levels = 8   # 0..7
 
 # Directories
 BASE_DIR_IL  = Path(r"E:/IL_U100")
-BASE_DIR_JAL = Path(r"C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q learning Paper\Data July\JAL_U100")
+BASE_DIR_JAL = Path(r"C:/Users/Tauseef/.../JAL_U100")
 
 # Helper: load full matrices for a given method and slot
 def load_data(method, slot):
@@ -47,15 +47,59 @@ def compute_action_grid(BT, CH, AC):
                          where=grid_count > 0)
     return grid
 
-# Custom colormap: light green to dark purple
+# Custom colormap: light orange to dark purple for clear action distinction
 cdict = {
-    'red':   [(0.0, 0.8, 0.8), (0.5, 0.2, 0.2), (1.0, 0.4, 0.4)],
-    'green': [(0.0, 1.0, 1.0), (0.5, 0.8, 0.8), (1.0, 0.2, 0.2)],
-    'blue':  [(0.0, 0.6, 0.6), (0.5, 0.4, 0.4), (1.0, 0.6, 0.6)]
+    'red':   [(0.0, 1.0, 1.0),  # light orange
+               (1.0, 0.4, 0.4)], # dark purple red component
+    'green': [(0.0, 0.8, 0.8),  # pale orange green component
+               (1.0, 0.0, 0.0)], # no green at dark purple
+    'blue':  [(0.0, 0.2, 0.2),  # low blue at light side
+               (1.0, 0.6, 0.6)]  # more blue in purple
 }
-custom_cmap = LinearSegmentedColormap('GreenPurple', segmentdata=cdict, N=256)
+custom_cmap = LinearSegmentedColormap('OrangePurple', segmentdata=cdict, N=256)
 
-# Plot heatmap and scatter comparison
+# Plot heatmaps for multiple gains comparison
+def plot_heatmaps_multi_gain(methods, slots, output_dir="plots", output_filename="heatmaps_multi_gain.pdf"):
+    os.makedirs(output_dir, exist_ok=True)
+    n = len(slots)
+    cols = 4
+    rows = len(methods)
+    fig, axes = plt.subplots(rows, cols, figsize=(4*cols, 4*rows), dpi=600)
+
+    # Precompute all grids to get shared color scale
+    grids = {m: [] for m in methods}
+    for m in methods:
+        for slot in slots:
+            BT, CH, AC = load_data(m, slot)
+            grids[m].append(compute_action_grid(BT, CH, AC))
+
+    # Determine global vmin/vmax
+    all_vals = np.concatenate([np.array(grids[m]).ravel() for m in methods])
+    vmin, vmax = np.nanmin(all_vals), np.nanmax(all_vals)
+    norm = Normalize(vmin=vmin, vmax=vmax)
+
+    # Plot
+    for i, m in enumerate(methods):
+        for j, slot in enumerate(slots):
+            ax = axes[i, j] if rows>1 else axes[j]
+            im = ax.imshow(grids[m][j], cmap=custom_cmap, norm=norm, origin='lower', aspect='auto')
+            ax.set_title(f"{m}, G={round(users/slot,3)}", fontsize=12, fontweight='bold')
+            ax.set_xticks(np.arange(channel_levels))
+            ax.set_yticks(np.arange(battery_levels))
+            if i == rows-1:
+                ax.set_xlabel('Channel State', fontsize=10)
+            if j == 0:
+                ax.set_ylabel('Battery Level', fontsize=10)
+            ax.tick_params(labelsize=8)
+    # Shared colorbar
+    cbar = fig.colorbar(im, ax=axes.ravel().tolist(), fraction=0.02, pad=0.02)
+    cbar.set_label('Average Action', fontsize=12, fontweight='bold')
+
+    plt.tight_layout(rect=(0,0.03,1,0.95))
+    plt.suptitle('Policy Heatmaps for IL and JAL across Gains', fontsize=14, fontweight='bold')
+    fig.savefig(Path(output_dir)/output_filename, bbox_inches='tight')
+    plt.show()
+
 def plot_discrete_joint_decision_comparison(BT_IL, CH_IL, AC_IL,
                                            BT_JAL, CH_JAL, AC_JAL,
                                            output_dir="plots",
@@ -107,7 +151,12 @@ def plot_discrete_joint_decision_comparison(BT_IL, CH_IL, AC_IL,
     fig2.savefig(Path(output_dir)/output_filename.replace('.pdf','_scatter.pdf'), bbox_inches='tight')
     plt.show()
 
+
 # Usage example
+if __name__ == '__main__':
+    methods = ['IL', 'JAL']
+    slots = [250, 200, 160, 100, 75, 50]
+    plot_heatmaps_multi_gain(methods, slots, output_dir="Heatmap_Plots", output_filename= "HM_Gain_Comparison.pdf")
 if __name__ == '__main__':
     # load data for slot=100 or adjust
     slot = 100
@@ -116,6 +165,6 @@ if __name__ == '__main__':
     plot_discrete_joint_decision_comparison(
         BT_IL, CH_IL, AC_IL,
         BT_JAL, CH_JAL, AC_JAL,
-        output_dir="Heatmap_Plots",
-        output_filename="policy_heatmap_S100.pdf"
+        output_dir="plots",
+        output_filename="policy_heatmap_comparison.pdf"
     )
