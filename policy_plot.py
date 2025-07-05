@@ -12,13 +12,13 @@ from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d import Axes3D
 
 BASE_DIR_IL = Path (r"E:\IL_U100")
-BASE_DIR_JAL = Path(r"E:\JAL_U100")
+BASE_DIR_JAL = Path(r"C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q learning Paper\Data July\JAL_U100")
 
-store_dirs_IL = ["IL_S_50_U_100_c"]
+store_dirs_IL = ["IL_S_100_U_100_c"]
 full_paths_IL = [BASE_DIR_IL / subdir for subdir in store_dirs_IL]
 full_paths_IL = [str(path) for path in full_paths_IL]
 
-store_dirs_JAL = ["JAL_S_50_U_100_c"]
+store_dirs_JAL = ["JAL_S_100_U_100_c"]
 full_paths_JAL = [BASE_DIR_JAL / subdir for subdir in store_dirs_JAL]
 full_paths_JAL = [str(path) for path in full_paths_JAL]
 
@@ -217,14 +217,14 @@ def plot_discrete_joint_decision_comparison_scatter(
 plot_discrete_joint_decision_comparison(
     Bt_user_IL, CH_user_IL, AC_user_IL,
     Bt_user_JAL, CH_user_JAL, AC_user_JAL,
-    output_dir="scatter_plots_2July",
-    output_filename="IL_vs_JAL_U100_S50_C.pdf"
+    output_dir="scatter_plots_5July",
+    output_filename="IL_vs_JAL_U100_S100.pdf"
 )
 
 
 plot_discrete_joint_decision_comparison_scatter(
     Bt_user_IL, CH_user_IL, AC_user_IL,
     Bt_user_JAL, CH_user_JAL, AC_user_JAL,
-    output_dir="scatter_plots_2July",
-    output_filename="IL_vs_JAL_scatter_U100_S50_C.pdf"
+    output_dir="scatter_plots_5July",
+    output_filename="IL_vs_JAL_scatter_U100_S100.pdf"
 )

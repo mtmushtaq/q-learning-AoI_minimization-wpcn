@@ -30,23 +30,23 @@ import os
 
 
 BASE_DIR_DIST = Path(r"E:\Dist_U100")
-store_dirs_dist = ["Dist_S_200_U_100"]
+store_dirs_dist = ["Dist_S_50_U_100"]
 full_paths_dist = [BASE_DIR_DIST / subdir for subdir in store_dirs_dist]
 full_paths_dist = [str(path) for path in full_paths_dist]
 
 BASE_DIR_RD = Path(r"C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q learning Paper\Data July\IRSA_U100")
-store_dirs_rd = ["IRSA_S_200_U_100"]
+store_dirs_rd = ["IRSA_S_50_U_100"]
 full_paths_rd = [BASE_DIR_RD / subdir for subdir in store_dirs_rd]
 full_paths_rd = [str(path) for path in full_paths_rd]
 
 BASE_DIR_IL = Path (r"E:\IL_U100")
 BASE_DIR_JAL = Path(r"C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q learning Paper\Data July\JAL_U100")
 
-store_dirs_IL = ["IL_S_200_U_100_c"]
+store_dirs_IL = ["IL_S_50_U_100_c"]
 full_paths_IL = [BASE_DIR_IL / subdir for subdir in store_dirs_IL]
 full_paths_IL = [str(path) for path in full_paths_IL]
 
-store_dirs_JAL = ["JAL_S_200_U_100_c"]
+store_dirs_JAL = ["JAL_S_50_U_100_c"]
 full_paths_JAL = [BASE_DIR_JAL / subdir for subdir in store_dirs_JAL]
 full_paths_JAL = [str(path) for path in full_paths_JAL]
 
@@ -182,7 +182,7 @@ data_dict = {
 }
 
 # Full Histogram Plot:
-plot_battery_efficiency_multiple_algorithms(data_dict, max_battery=8,  save_pdf=True, output_dir="BTresults2", filename="battery_hist+IRSAG05.pdf")
+plot_battery_efficiency_multiple_algorithms(data_dict, max_battery=8,  save_pdf=True, output_dir="BTresults2", filename="battery_histIRSAG02.pdf")
 
 # CDF Plot:
-plot_cdf_battery_efficiency(data_dict, max_battery=8, output_dir="BTresults2", filename="battery_cdf_IRSAG05.pdf")
+plot_cdf_battery_efficiency(data_dict, max_battery=8, output_dir="BTresults2", filename="battery_cdf_IRSAG02.pdf")
