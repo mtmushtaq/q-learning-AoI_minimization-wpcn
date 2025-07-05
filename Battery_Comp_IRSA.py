@@ -68,6 +68,9 @@ def plot_battery_all_gains(save_dir, output_name, smoothing_window=3):
         # y-axis only label on first column
         if col == 0:
             ax.set_ylabel('Average Available Battery Units', fontsize=12, fontweight='bold')
+
+        if row == 1:
+            ax.set_xlabel('Test', fontsize=12, fontweight='bold')
         # grid
         ax.grid(True, linestyle='--', alpha=0.5)
 
@@ -89,4 +92,4 @@ def plot_battery_all_gains(save_dir, output_name, smoothing_window=3):
     plt.show()
 
 if __name__ == '__main__':
-    plot_battery_all_gains('BatteryPlots_all', 'BT_AllGains_IRSA2')
+    plot_battery_all_gains('BatteryPlots_all', '_IRSA3')
