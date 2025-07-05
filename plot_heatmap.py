@@ -106,12 +106,12 @@ def plot_discrete_joint_decision_comparison(BT_IL, CH_IL, AC_IL,
 # Usage example
 if __name__ == '__main__':
     # load data for slot=100 or adjust
-    slot = 160
+    slot = 75
     BT_IL, CH_IL, AC_IL   = load_data('IL', slot)
     BT_JAL, CH_JAL, AC_JAL = load_data('JAL', slot)
     plot_discrete_joint_decision_comparison(
         BT_IL, CH_IL, AC_IL,
         BT_JAL, CH_JAL, AC_JAL,
         output_dir="Heatmap_Plots",
-        output_filename="policy_heatmap_S160.pdf"
+        output_filename="policy_heatmap_S75.pdf"
     )
