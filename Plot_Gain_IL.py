@@ -17,11 +17,7 @@ store_dirs_IL = ["IL_S_250_U_100_c", "IL_S_225_U_100_c", "IL_S_200_U_100_c", "IL
 # Do the same for JAL
 slots_JAL = [250, 225, 200, 160, 133, 100, 75, 62, 56, 50]
 gains_JAL = [round(users / s, 3) for s in slots_JAL]
-store_dirs_JAL = [
-    "JAL_S_250_U_100_c", "JAL_S_225_U_100_c", "JAL_S_200_U_100",
-    "JAL_S_160_U_100", "JAL_S_133_U_100", "JAL_S_100_U_100",
-    "JAL_S_75_U_100", "JAL_S_62_U_100", "JAL_S_56_U_100_c", "JAL_S_50_U_100_c"
-]
+store_dirs_JAL = [ "JAL_S_250_U_100_c", "JAL_S_225_U_100_c", "JAL_S_200_U_100_c", "JAL_S_160_U_100_c", "JAL_S_133_U_100_c", "JAL_S_100_U_100_c", "JAL_S_75_U_100_c", "JAL_S_62_U_100_c", "JAL_S_56_U_100_c", "JAL_S_50_U_100_c" ]
 
 
 for g, d in zip(gains_IL, store_dirs_IL):
@@ -41,12 +37,10 @@ BASE_DIR = Path(
     r"\AOI Q learning Paper\Data 10 June"
 )
 
-BASE_DIR_IL = Path (BASE_DIR / r"E:\IL_U100")
+BASE_DIR_IL = Path (r"E:\IL_U100")
 
 
-BASE_DIR_JAL = Path(
-    r"E:\JAL_U100c"
-)
+BASE_DIR_JAL = Path( r"E:\JAL_U100c")
 
 
 BASE_DIR_RD = Path(r"C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q learning Paper\Data July\IRSA_U100")
