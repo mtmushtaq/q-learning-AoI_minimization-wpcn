@@ -35,7 +35,7 @@ test = 200
 learning_rate = 0.0001
 #define system parameters
 mu_bu= 0.05 # one unit of battery
-number_of_slots = 100
+number_of_slots = 50
 number_of_users = 100
 time_duration = 0.02
 p= 4.6
@@ -66,7 +66,7 @@ chg_slots = 80
 k = np.array([0, 1, 2, 3, 4, 5])  # possible power values
 x = np.array([0, 1, 2, 3, 4, 5, 6, 7])  # channel quality information
 a = np.array([0, 1, 2, 3, 4, 5])
-Out_dir  = "IL_S_100_U_100_c"
+Out_dir  = "IL_S_50_U_100_c"
 # S = ((), dtype=float)
 #S = np.zeros((u.size, k.size, x.size), dtype=int)
 

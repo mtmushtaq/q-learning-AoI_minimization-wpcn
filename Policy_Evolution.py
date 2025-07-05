@@ -3,15 +3,34 @@ import matplotlib.pyplot as plt
 import os
 from data_npy_io import *
 
-
-Out_dir_JAL = "JAL_S_40_U_40_UP2"
-Out_dir_IL = "S_40_U_40_BT_003"
+from pathlib import Path
 
 
-AC_user_IL = load_test_matrix_npy("AC_user_tests", Out_dir_IL)[:200,:,:]
 
+BASE_DIR_DIST = Path(r"E:\Dist_U100")
+store_dirs_dist = ["Dist_S_200_U_100"]
+full_paths_dist = [BASE_DIR_DIST / subdir for subdir in store_dirs_dist]
+full_paths_dist = [str(path) for path in full_paths_dist]
 
-AC_user_JAL = load_test_matrix_npy("AC_user_tests", Out_dir_JAL)[:200,:,:]
+BASE_DIR_IL = Path (r"E:\IL_U100")
+BASE_DIR_JAL = Path(r"E:\JAL_U100c")
+
+store_dirs_IL = ["IL_S_250_U_100_c"]
+full_paths_IL = [BASE_DIR_IL / subdir for subdir in store_dirs_IL]
+full_paths_IL = [str(path) for path in full_paths_IL]
+
+store_dirs_JAL = ["JAL_S_250_U_100_c"]
+full_paths_JAL = [BASE_DIR_JAL / subdir for subdir in store_dirs_JAL]
+full_paths_JAL = [str(path) for path in full_paths_JAL]
+
+path_IL = "IL_S_250_U_100"
+path_JAL = "JAL_S_250_U_100_2"
+
+AC_user_IL = load_test_matrix_npy("AC_user_tests", full_paths_IL[0])[:200,:,:]
+
+AC_user_JAL = load_test_matrix_npy("AC_user_tests", full_paths_JAL[0])[:200,:,:]
+
+AC_user_dist = load_test_matrix_npy("AC_user_tests", full_paths_dist[0])[:100,:,:]
 
 
 import numpy as np
@@ -87,6 +106,6 @@ plot_action_distribution_comparison_over_tests(
     AC_user_IL,
     AC_user_JAL,
     num_actions=6,
-    output_dir="Policy_evo",
-    output_filename="IL_vs_JAL_action_prob_trendg1.pdf"
+    output_dir="Policy_evo_U100",
+    output_filename="IL_vs_JAL_action_prob_trendg0.4.pdf"
 )

@@ -35,7 +35,7 @@ test = 200
 learning_rate = 0.0001
 #define system parameters
 mu_bu= 0.05 # initial one unit of battery
-number_of_slots = 50
+number_of_slots = 100
 number_of_users = 100
 time_duration = 0.02
 p= 4.6
@@ -66,7 +66,7 @@ chg_slots = 80
 k = np.array([0, 1, 2, 3, 4, 5])  # possible power values
 x = np.array([0, 1, 2, 3, 4, 5, 6, 7])  # channel quality information
 a = np.array([0, 1, 2, 3, 4, 5])
-Out_dir  = "JAL_S_50_U_100_c"
+Out_dir  = "JAL_S_100_U_100_c"
 # S = ((), dtype=float)
 #S = np.zeros((u.size, k.size, x.size), dtype=int)
 
@@ -691,19 +691,6 @@ for name, arr in vectors_to_save.items():
 
 # If you want to compute the mean over iterations → (tests, users)
 
-AC_user_tests = load_test_matrix_npy("AC_user_tests", Out_dir)
-AC_user_Mean = load_test_vector_npy("AC_user_Mean", Out_dir)
-CH_user_tests = load_test_matrix_npy("CH_user_tests", Out_dir)
-BT_user_tests = load_test_vector_npy("BT_user_tests", Out_dir)
-REW_user_tests = load_test_matrix_npy("REW_user_tests", Out_dir)
-G_user_tests = load_test_matrix_npy("G_user_tests", Out_dir)
-Ch_Raw_tests = load_test_matrix_npy("Ch_Raw_tests", Out_dir)
-AC_user_avg_test = np.mean(AC_user_tests, axis=1)
-CH_user_avg_test = np.mean(CH_user_tests, axis=1)
-BT_user_avg_test = np.mean(BT_user_tests, axis=1)
-REW_user_avg_test = np.mean(REW_user_tests, axis=1)
-G_user_avg_test = np.mean(G_user_tests, axis=1)
-Ch_Raw_avg_test = np.mean(Ch_Raw_tests, axis=1)
 
 
 #plot_aoi_block_avg(AOI_mean, number_of_slots, number_of_users, block_size=100)

@@ -20,7 +20,7 @@ from mpl_toolkits.mplot3d import Axes3D
 BASE_DIR_IL = Path (r"E:\IL_U100")
 BASE_DIR_JAL = Path(r"E:\JAL_U100")
 
-store_dirs_IL = ["IL_S_250_U_100_UP_020"]
+store_dirs_IL = ["IL_S_250_U_100_c"]
 full_paths_IL = [BASE_DIR_IL / subdir for subdir in store_dirs_IL]
 full_paths_IL = [str(path) for path in full_paths_IL]
 
@@ -31,14 +31,14 @@ full_paths_JAL = [str(path) for path in full_paths_JAL]
 path_IL = "IL_S_200_U_100"
 path_JAL = "JAL_S_250_U_100_2"
 
-AC_user_IL = load_test_matrix_npy("AC_user_tests", path_IL)
-Bt_user_IL = load_test_vector_npy("BT_user_tests", path_IL)
-CH_user_IL = load_test_matrix_npy("CH_user_tests", path_IL)
+AC_user_IL = load_test_matrix_npy("AC_user_tests", full_paths_IL[0])
+Bt_user_IL = load_test_vector_npy("BT_user_tests", full_paths_IL[0])
+CH_user_IL = load_test_matrix_npy("CH_user_tests", full_paths_IL[0])
 
 
-AC_user_JAL = load_test_matrix_npy("AC_user_tests", path_JAL)[:100,:,:]
-Bt_user_JAL = load_test_vector_npy("BT_user_tests", path_JAL)[:100,:,:]
-CH_user_JAL = load_test_matrix_npy("CH_user_tests", path_JAL)[:100,:,:]
+AC_user_JAL = load_test_matrix_npy("AC_user_tests", full_paths_JAL[0])[:200,:,:]
+Bt_user_JAL = load_test_vector_npy("BT_user_tests", full_paths_JAL[0])[:200,:,:]
+CH_user_JAL = load_test_matrix_npy("CH_user_tests", full_paths_JAL[0])[:200,:,:]
 
 
 def plot_policy_violation_map(

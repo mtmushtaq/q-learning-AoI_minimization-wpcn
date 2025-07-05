@@ -10,22 +10,17 @@ users = 100
 users_IL = 100
 users_JAL = 100
 
-slots_IL = [250, 225, 200, 160, 133, 100, 80, 75, 62, 56, 50]
+slots_IL = [250, 225, 200, 166, 133, 100, 75, 62, 56, 50]
 gains_IL = [round(users/ s, 3) for s in slots_IL]
-store_dirs_IL = [
-    "IL_S_250_U_100_UP_020", "IL_S_225_U_100_UP_020", "IL_S_200_U_100_UP_020",
-    "IL_S_160_U_100_UP_020", "IL_S_133_U_100_UP_020", "IL_S_100_U_100_UP_020",
-    "IL_S_80_U_100_UP_020", "IL_S_75_U_100_UP_020", "IL_S_62_U_100_UP_020",
-    "IL_S_56_U_100_UP_020", "IL_S_50_U_100_UP_020"
-]
+store_dirs_IL = ["IL_S_250_U_100_c", "IL_S_225_U_100_c", "IL_S_200_U_100_c", "IL_S_160_U_100_c", "IL_S_133_U_100_c", "IL_S_100_U_100_c", "IL_S_75_U_100_c", "IL_S_62_U_100_c", "IL_S_56_U_100_c", "IL_S_50_U_100_c"]
 
 # Do the same for JAL
 slots_JAL = [250, 225, 200, 160, 133, 100, 75, 62, 56, 50]
 gains_JAL = [round(users / s, 3) for s in slots_JAL]
 store_dirs_JAL = [
-    "JAL_S_250_U_100", "JAL_S_225_U_100", "JAL_S_200_U_100",
+    "JAL_S_250_U_100_c", "JAL_S_225_U_100_c", "JAL_S_200_U_100",
     "JAL_S_160_U_100", "JAL_S_133_U_100", "JAL_S_100_U_100",
-    "JAL_S_75_U_100", "JAL_S_62_U_100", "JAL_S_56_U_100", "JAL_S_50_U_100"
+    "JAL_S_75_U_100", "JAL_S_62_U_100", "JAL_S_56_U_100_c", "JAL_S_50_U_100_c"
 ]
 
 
@@ -38,7 +33,7 @@ slots_dist = [250, 225, 200, 160, 133, 100, 75, 50]
 gains_dist = [round(users_dist / s, 3) for s in slots_dist]
 
 users_rd = 100
-slots_rd = [250, 225, 200, 160, 133, 100, 75, 50]
+slots_rd = [250, 225, 200, 160, 133, 100, 75, 62, 56, 50]
 gains_rd = [round(users_rd / s, 3) for s in slots_rd]
 
 BASE_DIR = Path(
@@ -50,16 +45,16 @@ BASE_DIR_IL = Path (BASE_DIR / r"E:\IL_U100")
 
 
 BASE_DIR_JAL = Path(
-    r"E:\JAL_U100"
+    r"E:\JAL_U100c"
 )
 
 
-BASE_DIR_RD = Path(r"E:\Random_U100")
+BASE_DIR_RD = Path(r"C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q learning Paper\Data July\IRSA_U100")
 
 BASE_DIR_DIST = Path(r"E:\Dist_U100")
 
 store_dirs_dist = ["Dist_S_250_U_100", "Dist_S_225_U_100", "Dist_S_200_U_100", "Dist_S_160_U_100", "Dist_S_133_U_100", "Dist_S_100_U_100", "Dist_S_75_U_100", "Dist_S_50_U_100"]
-store_dirs_rd = ["Random_S_250_U_100", "Random_S_225_U_100", "Random_S_200_U_100", "Random_S_160_U_100", "Random_S_133_U_100", "Random_S_100_U_100", "Random_S_75_U_100", "Random_S_50_U_100"]
+store_dirs_rd = ["IRSA_S_250_U_100", "IRSA_S_225_U_100", "IRSA_S_200_U_100", "IRSA_S_160_U_100", "IRSA_S_133_U_100", "IRSA_S_100_U_100", "IRSA_S_75_U_100", "IRSA_S_62_U_100", "IRSA_S_56_U_100","IRSA_S_50_U_100"]
 
 def plot_gain_vs_aaoi_from_dirs(store_dirs, gains, label="IL", color="blue", output_file="IL_gain_vs_aaoi.pdf"):
     """
@@ -263,13 +258,13 @@ methods_data = [
     (full_paths_JAL, gains_JAL, "JAL", "darkorange", 's', users_JAL),
 
     # Random
-    (full_paths_RD , gains_rd, "Random", "green", 'D', users_rd),
+    (full_paths_RD , gains_rd, "IRSA", "green", 'D', users_rd),
 
     # Fixed Distribution
-    (full_paths_dist, gains_dist, "OT1", "purple", '^', users_dist)
+    (full_paths_dist, gains_dist, "IRSA-EH", "purple", '^', users_dist)
 ]
 
-plot_gain_vs_aaoi_multi_comparison(methods_data, output_file="comparison_gain_vs_aaoi_D_Rd.pdf")
+plot_gain_vs_aaoi_multi_comparison(methods_data, output_file="gain_vs_aaoi_IRSA.pdf")
 
 
 
