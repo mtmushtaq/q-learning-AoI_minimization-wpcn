@@ -30,50 +30,50 @@ import os
 
 
 BASE_DIR_DIST = Path(r"E:\Dist_U100")
-store_dirs_dist = ["Dist_S_100_U_100"]
+store_dirs_dist = ["Dist_S_200_U_100"]
 full_paths_dist = [BASE_DIR_DIST / subdir for subdir in store_dirs_dist]
 full_paths_dist = [str(path) for path in full_paths_dist]
 
-BASE_DIR_RD = Path(r"E:\Random_U100")
-store_dirs_rd = ["Random_S_100_U_100"]
+BASE_DIR_RD = Path(r"C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q learning Paper\Data July\IRSA_U100")
+store_dirs_rd = ["IRSA_S_200_U_100"]
 full_paths_rd = [BASE_DIR_RD / subdir for subdir in store_dirs_rd]
 full_paths_rd = [str(path) for path in full_paths_rd]
 
 BASE_DIR_IL = Path (r"E:\IL_U100")
-BASE_DIR_JAL = Path(r"E:\JAL_U100")
+BASE_DIR_JAL = Path(r"C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q learning Paper\Data July\JAL_U100")
 
-store_dirs_IL = ["IL_S_100_U_100_UP_020"]
+store_dirs_IL = ["IL_S_200_U_100_c"]
 full_paths_IL = [BASE_DIR_IL / subdir for subdir in store_dirs_IL]
 full_paths_IL = [str(path) for path in full_paths_IL]
 
-store_dirs_JAL = ["JAL_S_100_U_100"]
+store_dirs_JAL = ["JAL_S_200_U_100_c"]
 full_paths_JAL = [BASE_DIR_JAL / subdir for subdir in store_dirs_JAL]
 full_paths_JAL = [str(path) for path in full_paths_JAL]
 
 
-path_IL = "IL_S_250_U_100"
-path_JAL = "JAL_S_250_U_100_2"
+#path_IL = "IL_S_250_U_100"
+#path_JAL = "JAL_S_250_U_100_2"
 
 
-AC_user_IL = load_test_matrix_npy("AC_user_tests", path_IL)[:100,:,:]
-Bt_user_IL = load_test_vector_npy("BT_user_tests", path_IL)[:100,:,:]
-CH_user_IL = load_test_matrix_npy("CH_user_tests", path_IL)[:100,:,:]
-AOI_IL = load_test_matrix_npy("AOI_test_iter", path_IL)[:100,:,:]
+AC_user_IL = load_test_matrix_npy("AC_user_tests", full_paths_IL[0])[:100,:,:]
+Bt_user_IL = load_test_vector_npy("BT_user_tests", full_paths_IL[0])[:100,:,:]
+CH_user_IL = load_test_matrix_npy("CH_user_tests", full_paths_IL[0])[:100,:,:]
+AOI_IL = load_test_matrix_npy("AOI_test_iter", full_paths_IL[0])[:100,:,:]
 
-AC_user_JAL = load_test_matrix_npy("AC_user_tests", path_JAL)[:100,:,:]
-Bt_user_JAL = load_test_vector_npy("BT_user_tests", path_JAL)[:100,:,:]
-CH_user_JAL = load_test_matrix_npy("CH_user_tests", path_JAL)[:100,:,:]
-AOI_JAl = load_test_matrix_npy("AOI_test_iter", path_JAL)[:100,:,:]
+AC_user_JAL = load_test_matrix_npy("AC_user_tests", full_paths_JAL[0])[:100,:,:]
+Bt_user_JAL = load_test_vector_npy("BT_user_tests", full_paths_JAL[0])[:100,:,:]
+CH_user_JAL = load_test_matrix_npy("CH_user_tests", full_paths_JAL[0])[:100,:,:]
+AOI_JAl = load_test_matrix_npy("AOI_test_iter", full_paths_JAL[0])[:100,:,:]
 
-#AC_user_Dist = load_test_matrix_npy("AC_user_tests", full_paths_dist[0])[:100,:,:]
-#Bt_user_Dist = load_test_vector_npy("BT_user_tests", full_paths_dist[0])[:100,:,:]
-#CH_user_Dist = load_test_matrix_npy("CH_user_tests", full_paths_dist[0])[:100,:,:]
-#AOI_Dist = load_test_matrix_npy("AOI_test_iter", full_paths_dist[0])[:100,:,:]
+AC_user_Dist = load_test_matrix_npy("AC_user_tests", full_paths_dist[0])[:100,:,:]
+Bt_user_Dist = load_test_vector_npy("BT_user_tests", full_paths_dist[0])[:100,:,:]/2
+CH_user_Dist = load_test_matrix_npy("CH_user_tests", full_paths_dist[0])[:100,:,:]
+AOI_Dist = load_test_matrix_npy("AOI_test_iter", full_paths_dist[0])[:100,:,:]
 
-#AC_user_Random = load_test_matrix_npy("AC_user_tests", full_paths_rd[0])[:100,:,:]
-#Bt_user_Random = load_test_vector_npy("BT_user_tests", full_paths_rd[0])[:100,:,:]
-#CH_user_Random = load_test_matrix_npy("CH_user_tests", full_paths_rd[0])[:100,:,:]
-#AOI_Random = load_test_matrix_npy("AOI_test_iter", full_paths_rd[0])[:100,:,:]
+AC_user_Random = load_test_matrix_npy("AC_user_tests", full_paths_rd[0])[:100,:,:]
+Bt_user_Random = load_test_vector_npy("BT_user_tests", full_paths_rd[0])[:100,:,:]
+CH_user_Random = load_test_matrix_npy("CH_user_tests", full_paths_rd[0])[:100,:,:]
+AOI_Random = load_test_matrix_npy("AOI_test_iter", full_paths_rd[0])[:100,:,:]
 
 
 
@@ -177,12 +177,12 @@ slots_Random = 100
 data_dict = {
     "IL": (AOI_IL, AC_user_IL, slots_IL),
     "JAL": (AOI_JAl, AC_user_JAL, slots_JAL),
-    #"Dist": (AOI_Dist, AC_user_Dist, slots_Dist),
-    #"Random": (AOI_Random, AC_user_Random, slots_Random)
+    "IRSA-EH": (AOI_Dist, AC_user_Dist, slots_Dist),
+    "IRSA": (AOI_Random, AC_user_Random, slots_Random)
 }
 
 # Full Histogram Plot:
-plot_battery_efficiency_multiple_algorithms(data_dict, max_battery=8,  save_pdf=True, output_dir="BTresults2", filename="battery_hist.pdf")
+plot_battery_efficiency_multiple_algorithms(data_dict, max_battery=8,  save_pdf=True, output_dir="BTresults2", filename="battery_hist+IRSAG05.pdf")
 
 # CDF Plot:
-plot_cdf_battery_efficiency(data_dict, max_battery=8, output_dir="BTresults2", filename="battery_cdf.pdf")
+plot_cdf_battery_efficiency(data_dict, max_battery=8, output_dir="BTresults2", filename="battery_cdf_IRSAG05.pdf")
