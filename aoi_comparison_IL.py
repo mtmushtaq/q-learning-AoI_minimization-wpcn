@@ -6,29 +6,30 @@ from pathlib import Path
 from data_npy_io import load_test_matrix_npy
 
 # Configuration
-tests_to_plot = 200  # number of tests to include on x-axis
+tests_to_plot = 100  # number of tests to include on x-axis
 users = 100  # number of users (M)
 
 # Methods and their gain settings
 # slots correspond to gains = users/slots
-slots = [200, 133, 100]
+slots = [200, 133, 100, 50]
 gains = [round(users / s, 3) for s in slots]
 
 # Assign a bright color to each gain for solid plotting
 gain_colors = {
     gains[0]: 'purple',  # G=0.5
     gains[1]: 'green',  # G=0.75
-    gains[2]: 'orange'  # G=1.0
+    gains[2]: 'orange',  # G=1.0
+    gains[3]: 'blue'  # G=2.0
 }
 
 table = {
     'IL': {
-        'base_dir': Path(r'E:/IL_U100'),
+        'base_dir': Path(r'C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q learning Paper\Data July\IL_U100'),
         'linestyle': '-',
         'marker': 'o'
     },
     'JAL': {
-        'base_dir': Path(r'E:/JAL_U100'),
+        'base_dir': Path(r'C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q learning Paper\Data July\JAL_U100'),
         'linestyle': '--',
         'marker': 's'
     }
@@ -52,7 +53,7 @@ def plot_aoi_comparison(methods_map, output_path):
     for name, cfg in methods_map.items():
         for s, g in zip(slots, gains):
             # build folder name
-            folder_name = f"{name}_S_{s}_U_{users}" + ('_c' if name == 'IL' else '')
+            folder_name = f"{name}_S_{s}_U_{users}_c" #+ ('_c' if name == 'IL' or 'JAL' else '')
             folder = cfg['base_dir'] / folder_name
             data = compute_final_aaoi(folder)
             # smooth
@@ -94,6 +95,6 @@ def plot_aoi_comparison(methods_map, output_path):
 
 
 if __name__ == '__main__':
-    out_folder = Path('aoi_comparison_IL_JAL')
-    output_file = out_folder / 'aoi_comparison_IL_JAL.pdf'
+    out_folder = Path('aoi_4Gs_IL_JAL')
+    output_file = out_folder / 'aoi_comparison_IL_JAL_LR.pdf'
     plot_aoi_comparison(table, output_file)
