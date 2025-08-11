@@ -12,8 +12,8 @@ battery_levels = 6   # 0..5
 channel_levels = 8   # 0..7
 
 # Directories
-BASE_DIR_IL  = Path(r"E:/IL_U100")
-BASE_DIR_JAL = Path(r"C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q learning Paper\Data July\JAL_U100")
+BASE_DIR_IL  = Path(r"C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q Learning Infocom\Data July\IL_U100")
+BASE_DIR_JAL = Path(r"C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q Learning Infocom\Data July\JAL_U100")
 
 # Helper: load full matrices for a given method and slot
 def load_data(method, slot):
@@ -58,7 +58,7 @@ def plot_heatmaps_multi_gain(methods, slots, output_dir="plots", output_filename
     os.makedirs(output_dir, exist_ok=True)
     rows = len(methods)
     cols = len(slots)
-    fig, axes = plt.subplots(rows, cols, figsize=(4*cols, 4*rows), dpi=300)
+    fig, axes = plt.subplots(rows, cols, figsize=(4*cols, 4*rows), dpi=600)
 
     # Precompute grids
     grids = {m: [] for m in methods}
@@ -107,7 +107,7 @@ def plot_discrete_joint_decision_comparison(BT_IL, CH_IL, AC_IL,
     norm = Normalize(vmin=vmin, vmax=vmax)
 
     # Heatmaps
-    fig, axs = plt.subplots(1, 2, figsize=(14, 6), dpi=300)
+    fig, axs = plt.subplots(1, 2, figsize=(14, 6), dpi=600)
     for ax, grid, title in zip(axs, [grid_IL, grid_JAL], ['IL', 'JAL']):
         im = ax.imshow(grid, cmap=custom_cmap, norm=norm, origin='lower', aspect='auto')
         ax.set_title(f"{title}: Battery vs Channel Action", fontsize=14, fontweight='bold')
@@ -120,7 +120,7 @@ def plot_discrete_joint_decision_comparison(BT_IL, CH_IL, AC_IL,
     cbar.set_label('Average Action', fontsize=12, fontweight='bold')
 
     # Scatter
-    fig2, axs2 = plt.subplots(1, 2, figsize=(14, 6), dpi=300)
+    fig2, axs2 = plt.subplots(1, 2, figsize=(14, 6), dpi=600)
     for ax, grid, title in zip(axs2, [grid_IL, grid_JAL], ['IL', 'JAL']):
         for b in range(battery_levels):
             for c in range(channel_levels):
@@ -142,7 +142,7 @@ def plot_discrete_joint_decision_comparison(BT_IL, CH_IL, AC_IL,
 
 if __name__ == '__main__':
     methods = ['IL', 'JAL']
-    slots = [250, 225, 200, 160, 133, 100, 75, 50]
+    slots = [250, 100, 62, 50]
     plot_heatmaps_multi_gain(methods, slots, output_dir="Heatmap_Plots", output_filename="HM_Gain_Comparison.pdf")
     # Example single-slot call:
     BT_IL, CH_IL, AC_IL   = load_data('IL', 100)
@@ -151,5 +151,5 @@ if __name__ == '__main__':
         BT_IL, CH_IL, AC_IL,
         BT_JAL, CH_JAL, AC_JAL,
         output_dir="Heatmap_Plots",
-        output_filename="HM_S100_comparison.pdf"
+        output_filename="HM_4_G.pdf"
     )

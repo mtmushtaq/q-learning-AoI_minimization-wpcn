@@ -10,12 +10,12 @@ users = 100
 tests_to_plot = 100
 battery_levels = 6  # 0..5
 channel_levels = 8  # 0..7
-slots = [250, 225, 200, 160, 133, 100, 75, 50]
-gains = [round(users/s,3) for s in slots]
+slots = [250, 100, 62, 50]
+gains = [round(users/s,2) for s in slots]
 
 # Directories
-BASE_DIR_IL  = Path(r"E:/IL_U100")
-BASE_DIR_JAL = Path(r"C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q learning Paper\Data July\JAL_U100")
+BASE_DIR_IL  = Path(r"C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q Learning Infocom\Data July\IL_U100")
+BASE_DIR_JAL = Path(r"C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q Learning Infocom\Data July\JAL_U100")
 
 # Helper to load data
 def load_data(method, slot):
@@ -71,7 +71,7 @@ def plot_full_grid(output_dir, filename):
 
     # Plotting
     for m_idx, method in enumerate(('IL', 'JAL')):
-        for gain_idx in range(8):
+        for gain_idx in range(4):
             # Determine row/col
             row = m_idx * 2 + (0 if gain_idx < 4 else 1)
             col = gain_idx % 4
@@ -106,4 +106,4 @@ def plot_full_grid(output_dir, filename):
     plt.show()
 
 if __name__ == '__main__':
-    plot_full_grid('Heatmap_Plots', 'full_IL_JAL_grid_gain2.pdf')
+    plot_full_grid('Heatmap_Plots', 'IL_JAL_ACt_grid_4.pdf')

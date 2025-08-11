@@ -16,28 +16,28 @@ users_rd = 100
 table = {
     "IL": {
         "slots": [250,225,200,166,133,100,75,62,56,50],
-        "base_dir": Path(r"E:/IL_U100"),
+        "base_dir": Path(r"C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q Learning Infocom\Data July\IL_U100"),
         "color": "blue",
         "marker": 'o',
         "users": users_IL
     },
     "JAL": {
         "slots": [250,225,200,160,133,100,75,62,56,50],
-        "base_dir": Path(r"E:/JAL_U100"),
+        "base_dir": Path(r"C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q Learning Infocom\Data July\JAL_U100"),
         "color": "darkorange",
         "marker": 's',
         "users": users_JAL
     },
-    "Random": {
+    "IRSA": {
         "slots": [250,225,200,160,133,100,75,50],
-        "base_dir": Path(r"E:/Random_U100"),
+        "base_dir": Path(r"C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q Learning Infocom\Data July\IRSA_U100"),
         "color": "green",
         "marker": 'D',
         "users": users_rd
     },
-    "Dist": {
+    "EH-IRSA": {
         "slots": [250,225,200,160,133,100,75,50],
-        "base_dir": Path(r"E:/Dist_U100"),
+        "base_dir": Path(r"C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q Learning Infocom\Data July\Dist_U100"),
         "color": "purple",
         "marker": '^',
         "users": users_dist
@@ -63,7 +63,7 @@ def plot_gain_vs_aaoi(methods, output_path, normalize_users=True, dpi=600):
         slots = cfg['slots']
         gains = np.array([round(cfg['users']/s,3) for s in slots])
         folders = [cfg['base_dir']/f for f in [
-            f"{label}_S_{s}_U_100" + ("_c" if label=="IL" else "")
+            f"{label}_S_{s}_U_100" + ("_c" if label=="IL" or "JAL" else "")
             for s in slots
         ]]
         aaoi = np.array(compute_final_aaoi(folders))/cfg['users'] if normalize_users else np.array(compute_final_aaoi(folders))
@@ -79,8 +79,8 @@ def plot_gain_vs_aaoi(methods, output_path, normalize_users=True, dpi=600):
         # ticks at actual data points
         plt.plot(g_sorted, a_sorted, marker=cfg['marker'], linestyle='None', markersize=6, color=cfg['color'])
 
-    plt.xlabel(r"Normalized Channel Traffic $G$", fontsize=12, fontweight='bold')
-    plt.ylabel(r"Normalized Average AoI $\bar{A}_{norm}$", fontsize=12, fontweight='bold')
+    plt.xlabel(r"Normalized Channel Traffic $G$", fontsize=15, fontweight='light')
+    plt.ylabel(r"Normalized Average AoI $\bar{A}_{norm}$", fontsize=15, fontweight='light')
     plt.grid(True, linestyle='--', alpha=0.6)
     plt.xticks(fontsize=11, fontweight='bold')
     plt.yticks(fontsize=11, fontweight='bold')

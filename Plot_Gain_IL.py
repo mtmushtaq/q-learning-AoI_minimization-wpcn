@@ -17,7 +17,7 @@ store_dirs_IL = ["IL_S_250_U_100_c", "IL_S_225_U_100_c", "IL_S_200_U_100_c", "IL
 # Do the same for JAL
 slots_JAL = [250, 225, 200, 160, 133, 100, 75, 62, 56, 50]
 gains_JAL = [round(users / s, 3) for s in slots_JAL]
-store_dirs_JAL = [ "JAL_S_250_U_100_c", "JAL_S_225_U_100_c", "JAL_S_200_U_100_c", "JAL_S_160_U_100_c", "JAL_S_133_U_100_c", "JAL_S_100_U_100_c", "JAL_S_75_U_100_c", "JAL_S_62_U_100_c", "JAL_S_56_U_100_c", "JAL_S_50_U_100_c" ]
+store_dirs_JAL = [ "JAL_S_250_U_100_c", "JAL_S_225_U_100_c", "JAL_S_200_U_100_c", "JAL_S_160_U_100_c", "JAL_S_133_U_100_c", "JAL_S_150_U_150_c", "JAL_S_75_U_100_c", "JAL_S_62_U_100_c", "JAL_S_56_U_100_c", "JAL_S_50_U_100_c" ]
 
 
 for g, d in zip(gains_IL, store_dirs_IL):
@@ -37,10 +37,10 @@ BASE_DIR = Path(
     r"\AOI Q learning Paper\Data 10 June"
 )
 
-BASE_DIR_IL = Path (r"E:\IL_U100")
+BASE_DIR_IL = Path (r"C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q learning Paper\Data July\IL_U100")
 
 
-BASE_DIR_JAL = Path( r"E:\JAL_U100c")
+BASE_DIR_JAL = Path( r"C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q learning Paper\Data July\JAL_U100")
 
 
 BASE_DIR_RD = Path(r"C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q learning Paper\Data July\IRSA_U100")
@@ -252,13 +252,13 @@ methods_data = [
     (full_paths_JAL, gains_JAL, "JAL", "darkorange", 's', users_JAL),
 
     # Random
-    (full_paths_RD , gains_rd, "IRSA", "green", 'D', users_rd),
+    #(full_paths_RD , gains_rd, "IRSA", "green", 'D', users_rd),
 
     # Fixed Distribution
-    (full_paths_dist, gains_dist, "IRSA-EH", "purple", '^', users_dist)
+    #(full_paths_dist, gains_dist, "IRSA-EH", "purple", '^', users_dist)
 ]
 
-plot_gain_vs_aaoi_multi_comparison(methods_data, output_file="gain_vs_aaoi_IRSA.pdf")
+plot_gain_vs_aaoi_multi_comparison(methods_data, output_file="gain_vs_aaoi_JALU150.pdf")
 
 
 

@@ -6,30 +6,30 @@ from pathlib import Path
 from data_npy_io import load_test_matrix_npy
 
 # Configuration
-tests_to_plot = 100  # number of tests to include on x-axis
+tests_to_plot = 200  # number of tests to include on x-axis
 users = 100  # number of users (M)
 
 # Methods and their gain settings
 # slots correspond to gains = users/slots
-slots = [200, 133, 100, 50]
-gains = [round(users / s, 3) for s in slots]
+slots = [200, 133, 100]
+gains = [round(users / s, 2) for s in slots]
 
 # Assign a bright color to each gain for solid plotting
 gain_colors = {
     gains[0]: 'purple',  # G=0.5
     gains[1]: 'green',  # G=0.75
     gains[2]: 'orange',  # G=1.0
-    gains[3]: 'blue'  # G=2.0
+    #gains[3]: 'blue'  # G=2.0
 }
 
 table = {
     'IL': {
-        'base_dir': Path(r'C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q learning Paper\Data July\IL_U100'),
+        'base_dir': Path(r'C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q Learning Infocom\Data 10 June\IL_U100'),
         'linestyle': '-',
         'marker': 'o'
     },
     'JAL': {
-        'base_dir': Path(r'C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q learning Paper\Data July\JAL_U100'),
+        'base_dir': Path(r'C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q Learning Infocom\Data 10 June\JAL_U100'),
         'linestyle': '--',
         'marker': 's'
     }
@@ -40,6 +40,9 @@ table = {
 def compute_final_aaoi(folder, key="AOI_test_iter"):
     try:
         aoi_all = load_test_matrix_npy(key, str(folder))[:tests_to_plot, :, :]
+        print(f"Loaded AOI shape from {folder}: {aoi_all.shape}")
+        aoi_all = aoi_all[:tests_to_plot, :, :]
+
         return aoi_all[:, -1, :].mean(axis=1) / users
     except Exception as e:
         print(f"Failed to load from {folder}: {e}")
@@ -53,7 +56,7 @@ def plot_aoi_comparison(methods_map, output_path):
     for name, cfg in methods_map.items():
         for s, g in zip(slots, gains):
             # build folder name
-            folder_name = f"{name}_S_{s}_U_{users}_c" #+ ('_c' if name == 'IL' or 'JAL' else '')
+            folder_name = f"{name}_S_{s}_U_{users}" #+ ('_c' if name == 'IL' or 'JAL' else '')
             folder = cfg['base_dir'] / folder_name
             data = compute_final_aaoi(folder)
             # smooth
@@ -67,7 +70,7 @@ def plot_aoi_comparison(methods_map, output_path):
                 color=color,
                 linestyle=cfg['linestyle'],
                 linewidth=2,
-                label=f"{name}, G={g}"
+                label=f"EE-{name}, G={g}"
             )
             # markers every 20
             m_x = x[::20]
@@ -83,9 +86,9 @@ def plot_aoi_comparison(methods_map, output_path):
     # Styling
     tick_params = {'axis': 'both', 'which': 'major', 'labelsize': 12, 'width': 1.5, 'length': 6}
     plt.tick_params(**tick_params)
-    plt.xlabel('Test Index', fontsize=14, fontweight='bold')
-    plt.ylabel(r"Normalized AAoI $A_{norm}$", fontsize=14, fontweight='bold')
-    plt.title(r"$A_{norm}$ over Tests for IL and JAL at Various Gains", fontsize=16, fontweight='bold')
+    plt.xlabel('Test Index', fontsize=15, fontweight='light')
+    plt.ylabel(r"Normalized AAoI $A_{norm}$", fontsize=15, fontweight='light')
+    #plt.title(r"$A_{norm}$ over Tests for IL and JAL at Various Gains", fontsize=15, fontweight='light')
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.legend(fontsize=11, ncol=3)
     plt.tight_layout()
@@ -96,5 +99,5 @@ def plot_aoi_comparison(methods_map, output_path):
 
 if __name__ == '__main__':
     out_folder = Path('aoi_4Gs_IL_JAL')
-    output_file = out_folder / 'aoi_comparison_IL_JAL_LR.pdf'
+    output_file = out_folder / 'aoi_comparison_IL_JAL_LR_nn.pdf'
     plot_aoi_comparison(table, output_file)

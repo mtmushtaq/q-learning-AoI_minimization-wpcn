@@ -56,7 +56,7 @@ def plot_gain_vs_aaoi_from_dirs(store_dirs, gains, label="IL", color="blue", out
     sorted_gains, sorted_aaoi = zip(*sorted_data)
 
     # Plot
-    plt.figure(figsize=(8, 5), dpi=300)  # High DPI for clarity in PDF
+    plt.figure(figsize=(8, 5), dpi=600)  # High DPI for clarity in PDF
     plt.plot(
         sorted_gains,
         sorted_aaoi,
@@ -190,8 +190,8 @@ def plot_gain_vs_aaoi_multi_comparison(
                  linestyle='--', linewidth=2,
                  label=label, color=color)
 
-    plt.xlabel(r"Normalized Channel Traffic $'G'$", fontsize=12, fontweight='bold')
-    plt.ylabel(r"Normalized Average AoI $\bar{A}_{norm}$", fontsize=12, fontweight='bold')
+    plt.xlabel(r"Normalized Channel Traffic $'G'$", fontsize=15, fontweight='light')
+    plt.ylabel(r"Normalized Average AoI $\bar{A}_{norm}$", fontsize=15, fontweight='light')
     #plt.title("Gain vs Final Average AoI Across Methods", fontsize=13, fontweight='bold')
     plt.grid(True, linestyle='--', alpha=0.6)
     plt.xticks(fontsize=11, fontweight='bold')

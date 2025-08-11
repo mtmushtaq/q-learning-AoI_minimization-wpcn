@@ -10,12 +10,12 @@ users = 100
 tests_to_plot = 100
 battery_levels = 6  # 0..5
 channel_levels = 8  # 0..7
-slots = [250, 225, 200, 160, 133, 100, 75, 50]
+slots = [250, 100, 62, 50]
 gains = [round(users/s,3) for s in slots]
 
 # Directories
-BASE_DIR_IL  = Path(r"E:/IL_U100")
-BASE_DIR_JAL = Path(r"C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q learning Paper\Data July\JAL_U100")
+BASE_DIR_IL  = Path(r"C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q Learning Infocom\Data July\IL_U100")
+BASE_DIR_JAL = Path(r"C:\Users\Tauseef\OneDrive - Politecnico di Bari\AOI Q Learning Infocom\Data July\JAL_U100")
 
 # Helper to load data
 def load_data(method, slot):
@@ -50,8 +50,8 @@ custom_cmap = LinearSegmentedColormap('OrangePurple', dict_c, 256)
 # Plot 4×4 grid of heatmaps
 def plot_full_grid(output_dir, filename):
     os.makedirs(output_dir, exist_ok=True)
-    fig, axes = plt.subplots(4, 4, figsize=(14, 10), dpi=300)
-    fig.subplots_adjust(wspace=0.3, hspace=0.3)
+    fig, axes = plt.subplots(4, 2, figsize=(10, 12), dpi=600)
+    fig.subplots_adjust(wspace=0.3, hspace=0.4)
 
     # compute all grids
     grids = {'IL': [], 'JAL': []}
@@ -64,38 +64,42 @@ def plot_full_grid(output_dir, filename):
     all_vals = np.concatenate([np.array(grids['IL']).ravel(), np.array(grids['JAL']).ravel()])
     norm = Normalize(vmin=np.nanmin(all_vals), vmax=np.nanmax(all_vals))
 
-    # Plot heatmaps
-    for m_idx, method in enumerate(('IL', 'JAL')):
-        for idx in range(8):
-            row = m_idx*2 + (0 if idx < 4 else 1)
-            col = idx % 4
+    for row in range(4):
+        for col, method in enumerate(('IL', 'JAL')):
             ax = axes[row, col]
-            grid = grids[method][idx]
+            grid = grids[method][row]
             im = ax.imshow(grid, cmap=custom_cmap, norm=norm,
                            origin='lower', aspect='auto')
 
             # Title
-            ax.set_title(f"{method}, G={gains[idx]}", fontsize=10, fontweight='bold')
-            # Ticks
-            ax.set_xticks(np.arange(channel_levels)); ax.set_yticks(np.arange(battery_levels))
-            ax.tick_params(labelsize=8, width=1, length=3)
-            # Axis labels on leftmost & bottom
-            if col == 0:
-                ax.set_ylabel(r"Battery, $\zeta$", fontsize=9, fontweight='bold')
-            if row == 3:
-                ax.set_xlabel(r"Channel, $\Upsilon$", fontsize=9, fontweight='bold')
+            ax.set_title(f"{method}, $G$={gains[row]}", fontsize=15, fontweight='normal')
 
-            # Colorbar for each
-            cbar = fig.colorbar(im, ax=ax, fraction=0.03, pad=0.01)
-            cbar.ax.tick_params(labelsize=6)
+            # Ticks
+            ax.set_xticks(np.arange(channel_levels))
+            ax.set_yticks(np.arange(battery_levels))
+            ax.tick_params(labelsize=8, width=1, length=3)
+
+            # Y-axis label on the first column only
+            if col == 0:
+                ax.set_ylabel(r"Battery, $\zeta$", fontsize=15, fontweight='normal')
+
+            # X-axis label on the last row only
+            if row == 3:
+                ax.set_xlabel(r"Channel, $\Upsilon$", fontsize=15, fontweight='light')
+
+            # Colorbar only on the right column of each row
+            if col == 1:
+                cbar = fig.colorbar(im, ax=ax, fraction=0.03, pad=0.02)
+                cbar.ax.tick_params(labelsize=6)
 
     plt.tight_layout()
     fig.savefig(Path(output_dir)/filename, bbox_inches='tight')
     plt.show()
 
+
 # main
 def main():
-    plot_full_grid('Heatmap_Plots', 'full_IL_JAL_gridC.pdf')
+    plot_full_grid('Heatmap_Plots', 'Gain_IL_JAL_4by2.pdf')
 
 if __name__ == '__main__':
     main()

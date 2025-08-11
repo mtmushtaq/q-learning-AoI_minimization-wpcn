@@ -65,22 +65,22 @@ from pathlib import Path
 # ————————————————
 # 1) absolute base dir:
 # ————————————————
-BASE_DIR = Path(
-    r"C:\Users\Tauseef\OneDrive - Politecnico di Bari"
-    r"\AOI Q learning Paper\Data 10 June"
-)
-if not BASE_DIR.exists():
-    raise FileNotFoundError(f"{BASE_DIR!r} does not exist")
+#BASE_DIR = Path(
+ #   r"C:\Users\Tauseef\OneDrive - Politecnico di Bari"
+  #  r"\AOI Q learning Paper\Data 10 June"
+#)
+#if not BASE_DIR.exists():
+ #   raise FileNotFoundError(f"{BASE_DIR!r} does not exist")
 # ——————————————————————————————————
 # 2) construct the per‐experiment subfolder
 # ——————————————————————————————————
-slots = 250
-users = 100
+slots = 25
+users = 10
 
-BASE_DIR_IL = Path (BASE_DIR / r"E:\IL_U100")
+#BASE_DIR_IL = Path (BASE_DIR / r"E:\IL_U100")
 
-subfolder = f"IL_S_{slots}_U_{users}_UP_020"
-Out_dir = BASE_DIR_IL / subfolder
+subfolder = f"JAL_S_{slots}_U_{users}_BTT"
+Out_dir = subfolder
 
 # (optional) if your load_… functions expect a str rather than a Path
 Out_dir = str(Out_dir)
@@ -1940,13 +1940,6 @@ def plot_testwise_reward_evolution(REW_user_tests, smoothing_window=3):
     fig.suptitle("User-wise Smoothed Reward Evolution Across Tests", fontsize=16)
     plt.show()
 
-
-import os
-from pathlib import Path
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-
 def plot_testwise_battery_evolution(
     BT_user_tests,
     save_dir,
@@ -2212,34 +2205,34 @@ def plot_final_aoi_per_test(AOI_test_iter_all, save_dir, smoothing_window=3):
  num_tests, num_users = AOI_test.shape
 
  # Plot 1: Per-user AoI across tests
- num_cols = 5
- num_rows = int(np.ceil(num_users / num_cols))
+ #num_cols = 5
+ #num_rows = int(np.ceil(num_users / num_cols))
 
- fig1, axs = plt.subplots(num_rows, num_cols, figsize=(4 * num_cols, 3 * num_rows), constrained_layout=True)
- axs = axs.flatten()
+ #fig1, axs = plt.subplots(num_rows, num_cols, figsize=(4 * num_cols, 3 * num_rows), constrained_layout=True)
+ #axs = axs.flatten()
 
- for u in range(num_users):
-     raw = AOI_test[:, u]
-     smoothed = pd.Series(raw).rolling(window=smoothing_window, min_periods=1, center=True).mean()
+ #for u in range(num_users):
+  #   raw = AOI_test[:, u]
+   #  smoothed = pd.Series(raw).rolling(window=smoothing_window, min_periods=1, center=True).mean()
 
-     axs[u].plot(raw, color='lightgray', label='Raw')
-     axs[u].plot(smoothed, color='blue', label=f'SMA (w={smoothing_window})')
-     axs[u].set_title(f"User {u}")
-     axs[u].set_xlabel("Test Index")
-     axs[u].set_ylabel("Final AoI")
-     axs[u].legend()
-     axs[u].grid(True)
+    # axs[u].plot(raw, color='lightgray', label='Raw')
+     #axs[u].plot(smoothed, color='blue', label=f'SMA (w={smoothing_window})')
+     #axs[u].set_title(f"User {u}")
+     #axs[u].set_xlabel("Test Index")
+     #axs[u].set_ylabel("Final AoI")
+     #axs[u].legend()
+     #axs[u].grid(True)
 
  # Remove unused axes
- for i in range(num_users, len(axs)):
-     fig1.delaxes(axs[i])
+ #for i in range(num_users, len(axs)):
+  #   fig1.delaxes(axs[i])
 
- fig1.suptitle("Per-User Final AoI Over Tests", fontsize=16)
+ #fig1.suptitle("Per-User Final AoI Over Tests", fontsize=16)
  # Save figure
- fig1_path = save_path / "per_user_final_aoi.pdf"
- fig1.savefig(fig1_path, dpi=600)
- print(f"Saved figure: {fig1_path}")
- plt.show()
+ #fig1_path = save_path / "per_user_final_aoi.pdf"
+ #fig1.savefig(fig1_path, dpi=600)
+ #print(f"Saved figure: {fig1_path}")
+ #plt.show()
 
  # Plot 2: Overall average AoI over all users
  avg_aoi_all_users = AOI_test.mean(axis=1)
@@ -2266,9 +2259,171 @@ def plot_final_aoi_per_test(AOI_test_iter_all, save_dir, smoothing_window=3):
 
  AC_user_tests = load_test_matrix_npy("AC_user_tests", Out_dir)
 
+def plot_overall_action_evolution(
+    AC_user_tests: np.ndarray,
+    save_dir: str,
+    smoothing_window: int = 3,
+    filename: str = "action_evolution.pdf"
+):
+    """
+    Plot the average action per test across all users, with a smoothing line,
+    and save a 600 dpi PDF of the figure to `save_dir/filename`.
+
+    Parameters:
+    - AC_user_tests: np.ndarray of shape (tests, iterations, users)
+    - save_dir:      str, path to directory where the PDF will be saved
+    - smoothing_window: int, window size for moving‐average smoothing (default: 3)
+    - filename:      str, name of the output PDF file (default: "action_evolution.pdf")
+    """
+    # Compute average over iterations then users → shape (tests,)
+    avg_per_test = AC_user_tests.mean(axis=1).mean(axis=1)
+
+    # Smooth with a centered moving average
+    smoothed = pd.Series(avg_per_test).rolling(
+        window=smoothing_window, min_periods=1, center=True
+    ).mean()
+
+    # Create plot
+    fig, ax = plt.subplots(figsize=(8, 5), constrained_layout=True)
+    ax.plot(avg_per_test,
+            marker='o', linestyle='-', color='lightgray',
+            label='Raw average')
+    ax.plot(smoothed,
+            linestyle='-', linewidth=2,
+            label=f'SMA (w={smoothing_window})')
+    ax.set_title("Overall Smoothed Action Evolution Across Tests")
+    ax.set_xlabel("Test Index")
+    ax.set_ylabel("Avg Action (all users)")
+    ax.grid(True)
+    ax.legend()
+
+    # Ensure save directory exists
+    os.makedirs(save_dir, exist_ok=True)
+
+    # Save as 600 dpi PDF
+    save_path = os.path.join(save_dir, filename)
+    fig.savefig(save_path, dpi=600, format='pdf')
+    plt.close(fig)
+
+    print(f"Figure saved to: {save_path}")
 
 
-AC_user_Mean = load_test_vector_npy("AC_user_Mean", Out_dir)
+def plot_overall_reward_evolution(
+    REW_user_tests: np.ndarray,
+    save_dir: str,
+    smoothing_window: int = 3,
+    filename: str = "reward_evolution.pdf"
+):
+    """
+    Plot the average reward per test across all users, with a smoothing line,
+    and save a 600 dpi PDF of the figure to `save_dir/filename`.
+
+    Parameters:
+    - REW_user_tests:  np.ndarray of shape (tests, iterations, users)
+    - save_dir:        str, directory path where the PDF will be saved
+    - smoothing_window:int, window size for moving‐average smoothing (default: 3)
+    - filename:        str, name of the output PDF file (default: "reward_evolution.pdf")
+    """
+    # 1) Compute average over iterations then users → shape (tests,)
+    avg_per_test = REW_user_tests.mean(axis=1).mean(axis=1)
+
+    # 2) Compute centered moving-average smoothing
+    smoothed = pd.Series(avg_per_test).rolling(
+        window=smoothing_window,
+        min_periods=1,
+        center=True
+    ).mean()
+
+    # 3) Create the plot
+    fig, ax = plt.subplots(figsize=(8, 5), constrained_layout=True)
+    ax.plot(
+        avg_per_test,
+        marker='o', linestyle='-', color='lightgray',
+        label='Raw average'
+    )
+    ax.plot(
+        smoothed,
+        linestyle='-', linewidth=2, color='green',
+        label=f'SMA (w={smoothing_window})'
+    )
+    ax.set_title("Overall Smoothed Reward Evolution Across Tests")
+    ax.set_xlabel("Test Index")
+    ax.set_ylabel("Avg Reward (all users)")
+    ax.grid(True)
+    ax.legend()
+
+    # 4) Ensure that the save directory exists
+    os.makedirs(save_dir, exist_ok=True)
+
+    # 5) Save as 600 dpi PDF
+    save_path = os.path.join(save_dir, filename)
+    fig.savefig(save_path, dpi=600, format='pdf')
+    plt.close(fig)
+
+    print(f"Figure saved to: {save_path}")
+
+import os
+from pathlib import Path
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+def plot_overall_battery_evolution(
+    BT_user_tests: np.ndarray,
+    save_dir: str,
+    smoothing_window: int = 3,
+    filename: str = "battery_evolution.pdf"
+):
+    """
+    Plot the average battery per test across all users, with a smoothing line,
+    and save a 600 dpi PDF of the figure to `save_dir/filename`.
+
+    Parameters:
+    - BT_user_tests:     np.ndarray of shape (tests, iterations, users)
+    - save_dir:          str or Path, directory to save the PDF
+    - smoothing_window:  int, window size for moving‐average smoothing (default: 3)
+    - filename:          str, name of the output PDF file (default: "battery_evolution.pdf")
+    """
+    # Compute average over iterations then users → shape (tests,)
+    avg_per_test = BT_user_tests.mean(axis=1).mean(axis=1)
+
+    # Smooth with a centered moving average
+    smoothed = pd.Series(avg_per_test).rolling(
+        window=smoothing_window,
+        min_periods=1,
+        center=True
+    ).mean()
+
+    # Create the plot
+    fig, ax = plt.subplots(figsize=(8, 5), constrained_layout=True)
+    ax.plot(
+        avg_per_test,
+        marker='o', linestyle='-', color='lightgray',
+        label='Raw average'
+    )
+    ax.plot(
+        smoothed,
+        linestyle='-', linewidth=2, color='orange',
+        label=f'SMA (w={smoothing_window})'
+    )
+    ax.set_title("Overall Smoothed Battery Evolution Across Tests")
+    ax.set_xlabel("Test Index")
+    ax.set_ylabel("Avg Battery (all users)")
+    ax.grid(True)
+    ax.legend()
+
+    # Ensure save directory exists
+    Path(save_dir).mkdir(parents=True, exist_ok=True)
+
+    # Save as 600 dpi PDF
+    save_path = Path(save_dir) / filename
+    fig.savefig(save_path, dpi=600, format='pdf')
+    plt.close(fig)
+
+    print(f"Figure saved to: {save_path}")
+
+
+#AC_user_Mean = load_test_vector_npy("AC_user_Mean", Out_dir)
 CH_user_tests = load_test_matrix_npy("CH_user_tests", Out_dir)
 BT_user_tests = load_test_vector_npy("BT_user_tests", Out_dir)
 REW_user_tests = load_test_matrix_npy("REW_user_tests", Out_dir)
@@ -2377,10 +2532,10 @@ for t in range(test):
 
 #plot_action_vs_battery(CH_user_tests, BT_user_tests, AC_user_tests)
 #plot_reward_vs_action(AC_user_tests, REW_user_tests)
-plot_battery_evolution(BT_user_tests)
+#plot_battery_evolution(BT_user_tests)
 
-plot_avg_battery_evolution(BT_user_tests, [0, 3, 5])
-plot_battery_delta_over_frames(BT_user_tests)
+#plot_avg_battery_evolution(BT_user_tests, [0, 3, 5])
+#plot_battery_delta_over_frames(BT_user_tests)
 
 #plot_action_vs_battery_combined(CH_user_tests, BT_user_tests, AC_user_tests, smooth_span=50, num_bins=20)
 #plot_userwise_action_histograms(AC_user_tests, num_bins=10)
@@ -2388,16 +2543,45 @@ plot_battery_delta_over_frames(BT_user_tests)
 #plot_user_slot_activity_histograms(slot_aloc_it)
 #plot_idle_slot_trend(idle_slots)
 
-plot_testwise_action_evolution(AC_user_tests, smoothing_window=3)
+#plot_testwise_action_evolution(AC_user_tests, smoothing_window=3)
 
-plot_testwise_reward_evolution(REW_user_tests, smoothing_window=3)
+# Suppose AC_user_tests.shape == (n_tests, n_iterations, n_users)
+out_dir= "JAL_U10_S25_BTD2"
+plot_overall_action_evolution(
+    AC_user_tests,
+    save_dir=out_dir,
+    smoothing_window=3,
+    filename="overall_action_evolution.pdf"
+)
+
+
+# Assume REW_user_tests has shape (n_tests, n_iterations, n_users)
+
+plot_overall_reward_evolution(
+    REW_user_tests,
+    save_dir=out_dir,
+    smoothing_window=3,
+    filename="overall_reward_evolution.pdf"
+)
+
+
+#plot_testwise_reward_evolution(REW_user_tests, smoothing_window=3)
 
 #plot_testwise_battery_evolution(BT_user_tests, smoothing_window=3)
 
-plot_testwise_battery_evolution(
+#plot_testwise_battery_evolution(
+ #   BT_user_tests,
+  #  save_dir="AOI_US_REW",
+   # smoothing_window=3
+#)
+
+# BT_user_tests.shape == (n_tests, n_iterations, n_users)
+
+plot_overall_battery_evolution(
     BT_user_tests,
-    save_dir="AOI_f_100",
-    smoothing_window=3
+    save_dir=out_dir,
+    smoothing_window=3,
+    filename="overall_battery_evolution.pdf"
 )
 
 #plot_aoi_evolution(AOI_test_iter, smoothing_window=1000)
@@ -2408,12 +2592,12 @@ AOI_test_iter_all = load_test_matrix_npy("AOI_test_iter", Out_dir)
 
 #plot_final_aoi_per_test(AOI_test_iter_all, smoothing_window=30)
 
-plot_final_aoi_per_test(AOI_test_iter_all, save_dir = "AOI_f_100", smoothing_window=3)
+plot_final_aoi_per_test(AOI_test_iter_all, save_dir = out_dir, smoothing_window=3)
 
-plot_action_vs_battery_by_discrete_channel(
-    BT_user_tests, CH_user_tests, AC_user_tests,
-    smooth_span=50,
-    num_bins=25,
-    show_quantiles=True,
-    allowed_channel_grades=range(8)  # 0 to 7
-)
+#plot_action_vs_battery_by_discrete_channel(
+ #   BT_user_tests, CH_user_tests, AC_user_tests,
+  #  smooth_span=50,
+   # num_bins=25,
+   # show_quantiles=True,
+   # allowed_channel_grades=range(8)  # 0 to 7
+#)
