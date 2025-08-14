@@ -74,12 +74,12 @@ from pathlib import Path
 # ——————————————————————————————————
 # 2) construct the per‐experiment subfolder
 # ——————————————————————————————————
-slots = 25
+slots = 8
 users = 10
 
 #BASE_DIR_IL = Path (BASE_DIR / r"E:\IL_U100")
 
-subfolder = f"JAL_S_{slots}_U_{users}_BTT"
+subfolder = f"IL_S_{slots}_U_{users}_c"
 Out_dir = subfolder
 
 # (optional) if your load_… functions expect a str rather than a Path
@@ -2308,6 +2308,41 @@ def plot_overall_action_evolution(
     print(f"Figure saved to: {save_path}")
 
 
+def plot_slotwise_test_aaoi(AOI_test, save_dir, smoothing_window=3):
+    """
+    Plot test-wise user-average AAoI from AOI_test (slot-based averages),
+    and save the figure as a high-resolution PDF.
+
+    Parameters:
+    - AOI_test: np.ndarray of shape (tests, users), containing average AoI per user per test.
+    - save_dir: str or Path. Directory where PDF figure will be saved.
+    - smoothing_window: int, window size for SMA smoothing.
+    """
+    save_path = Path(save_dir)
+    save_path.mkdir(parents=True, exist_ok=True)
+
+    # Average over users to get one AAoI per test
+    avg_aaoi_per_test = AOI_test.mean(axis=1)
+    smoothed_avg = pd.Series(avg_aaoi_per_test).rolling(window=smoothing_window, min_periods=1, center=True).mean()
+
+    # Plotting
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.plot(avg_aaoi_per_test, color='gray', label='Raw Test-Wise Avg AoI')
+    ax.plot(smoothed_avg, color='navy', linewidth=2, label=f'Smoothed (w={smoothing_window})')
+    ax.set_title("Slot-Wise Average AoI per Test (All Users)")
+    ax.set_xlabel("Test Index")
+    ax.set_ylabel("Mean AoI (slots)")
+    ax.grid(True)
+    ax.legend()
+    fig.tight_layout()
+
+    # Save figure
+    fig_path = save_path / "slotwise_avg_aoi_per_test.pdf"
+    fig.savefig(fig_path, dpi=600)
+    print(f"Saved figure: {fig_path}")
+    plt.show()
+
+
 def plot_overall_reward_evolution(
     REW_user_tests: np.ndarray,
     save_dir: str,
@@ -2546,7 +2581,7 @@ for t in range(test):
 #plot_testwise_action_evolution(AC_user_tests, smoothing_window=3)
 
 # Suppose AC_user_tests.shape == (n_tests, n_iterations, n_users)
-out_dir= "JAL_U10_S25_BTD2"
+out_dir= "IL_S_6_U_10_slot_300"
 plot_overall_action_evolution(
     AC_user_tests,
     save_dir=out_dir,
@@ -2587,13 +2622,15 @@ plot_overall_battery_evolution(
 #plot_aoi_evolution(AOI_test_iter, smoothing_window=1000)
 
 AOI_test_iter_all = load_test_matrix_npy("AOI_test_iter", Out_dir)
+AOI_test = load_test_matrix_npy("AOI_test", Out_dir)
 
 #plot_aoi_testwise(AOI_test_iter_all, smoothing_window=30)
 
 #plot_final_aoi_per_test(AOI_test_iter_all, smoothing_window=30)
 
-plot_final_aoi_per_test(AOI_test_iter_all, save_dir = out_dir, smoothing_window=3)
+#plot_final_aoi_per_test(AOI_test_iter_all, save_dir = out_dir, smoothing_window=3)
 
+plot_slotwise_test_aaoi(AOI_test, save_dir= out_dir, smoothing_window=3)
 #plot_action_vs_battery_by_discrete_channel(
  #   BT_user_tests, CH_user_tests, AC_user_tests,
   #  smooth_span=50,

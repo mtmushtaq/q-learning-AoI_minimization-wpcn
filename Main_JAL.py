@@ -33,13 +33,13 @@ from mpl_toolkits.mplot3d import Axes3D
 # This code with an optimized Learning rate= 0.5, But we need to find the value of Epsilon for good convergence
 # define training parameters
 discount_factor = 0.99  # 0.001
-test = 50
+test = 200
 learning_rate = 0.0001
 #define system parameters
 mu_bu= 0.05 # initial one unit of battery
-number_of_slots = 5
-number_of_users = 10
-time_duration = 0.02
+number_of_slots = 30
+number_of_users = 20
+time_duration = 0.002
 p= 4.6
 dist_min = 1
 dist_max = 7
@@ -50,7 +50,7 @@ iterations = 10000
 Frame_size = []
 STD_AoI_u_AT = []
 STD_AoI_u_BT = []
-Batch_size = 1
+Batch_size = 10
 it_ind = 0
 explore_count = []
 exploit_count = []
@@ -69,7 +69,7 @@ chg_slots = 80
 k = np.array([0, 1, 2, 3, 4, 5])  # possible power values
 x = np.array([0, 1, 2, 3, 4, 5, 6, 7])  # channel quality information
 a = np.array([0, 1, 2, 3, 4, 5])
-Out_dir  = "JAL_S_100_U_100_BTT"
+Out_dir  = "JAL_S_30_U_20_BT"
 # S = ((), dtype=float)
 #S = np.zeros((u.size, k.size, x.size), dtype=int)
 
@@ -240,7 +240,7 @@ def get_row(pw, ch):
     #elif act < BT:
      #   rew = D_AOI + (2* act)
     #return rew
-def get_rew(B_AOI, A_AOI, BT, act, ch, max_AOI=100, max_BT=5, w1=0.9, w2=0.6, w3=0.9):
+def get_rew(B_AOI, A_AOI, BT, act, ch, max_AOI=100, max_BT=5, w1=0.9, w2=0, w3=0):
     D_AOI = B_AOI - A_AOI
     D_AOI_norm = D_AOI / number_of_slots
     act_norm = act / 5
