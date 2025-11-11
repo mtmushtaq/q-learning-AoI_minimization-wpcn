@@ -35,8 +35,8 @@ test = 3
 learning_rate = 0.001
 #define system parameters
 mu_bu= 0.05 # one unit of battery
-number_of_slots = 4
-number_of_users = 2
+number_of_slots = 8
+number_of_users = 3
 time_duration = 0.025
 p= 4.6
 dist_min = 1
@@ -75,12 +75,14 @@ from pathlib import Path
 # 2) construct the per‐experiment subfolder
 # ——————————————————————————————————
 slots = 8
-users = 10
-
+users = 5
+L = 2
+max_bt = 0.05
 #BASE_DIR_IL = Path (BASE_DIR / r"E:\IL_U100")
-
-subfolder = f"IL_S_{slots}_U_{users}_c"
+L       = 6
+subfolder = f"TILPDNOMA_S_5_U_10_PL5_BT0.2_T1000"
 Out_dir = subfolder
+
 
 # (optional) if your load_… functions expect a str rather than a Path
 Out_dir = str(Out_dir)
@@ -2581,7 +2583,7 @@ for t in range(test):
 #plot_testwise_action_evolution(AC_user_tests, smoothing_window=3)
 
 # Suppose AC_user_tests.shape == (n_tests, n_iterations, n_users)
-out_dir= "IL_S_6_U_10_slot_300"
+out_dir= subfolder
 plot_overall_action_evolution(
     AC_user_tests,
     save_dir=out_dir,
@@ -2622,15 +2624,15 @@ plot_overall_battery_evolution(
 #plot_aoi_evolution(AOI_test_iter, smoothing_window=1000)
 
 AOI_test_iter_all = load_test_matrix_npy("AOI_test_iter", Out_dir)
-AOI_test = load_test_matrix_npy("AOI_test", Out_dir)
+AOI_test = load_test_matrix_npy("AOI_test_iter", Out_dir)
 
 #plot_aoi_testwise(AOI_test_iter_all, smoothing_window=30)
 
 #plot_final_aoi_per_test(AOI_test_iter_all, smoothing_window=30)
 
-#plot_final_aoi_per_test(AOI_test_iter_all, save_dir = out_dir, smoothing_window=3)
+plot_final_aoi_per_test(AOI_test_iter_all, save_dir = out_dir, smoothing_window=3)
 
-plot_slotwise_test_aaoi(AOI_test, save_dir= out_dir, smoothing_window=3)
+#plot_slotwise_test_aaoi(AOI_test, save_dir= out_dir, smoothing_window=3)
 #plot_action_vs_battery_by_discrete_channel(
  #   BT_user_tests, CH_user_tests, AC_user_tests,
   #  smooth_span=50,

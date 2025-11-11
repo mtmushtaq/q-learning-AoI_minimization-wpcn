@@ -26,6 +26,7 @@ full_paths_JAL = [str(path) for path in full_paths_JAL]
 path_IL = "IL_S_250_U_100"
 path_JAL = "JAL_S_250_U_100_2"
 
+
 AC_user_IL = load_test_matrix_npy("AC_user_tests", full_paths_IL[0])[:200,:,:]
 
 AC_user_JAL = load_test_matrix_npy("AC_user_tests", full_paths_JAL[0])[:200,:,:]
@@ -93,13 +94,9 @@ def plot_action_distribution_comparison_over_tests(
     # Save high-res PDF
     os.makedirs(output_dir, exist_ok=True)
     full_path = os.path.join(output_dir, output_filename)
-    plt.savefig(full_path, format='pdf', dpi=600, bbox_inches='tight')
+    plt.savefig(full_path, format='png', dpi=600, bbox_inches='tight')
     plt.close()
     print(f"✅ High-res PDF saved: {full_path}")
-
-
-
-
 
 
 plot_action_distribution_comparison_over_tests(
@@ -107,5 +104,5 @@ plot_action_distribution_comparison_over_tests(
     AC_user_JAL,
     num_actions=6,
     output_dir="Policy_evo_U100",
-    output_filename="IL_vs_JAL_action_prob_trendg0.4.pdf"
+    output_filename="IL_action_prob_tren.pdf"
 )
