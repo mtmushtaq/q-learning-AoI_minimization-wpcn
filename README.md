@@ -80,7 +80,7 @@ Information (AoI)** under:
 
 **Main Simulators/**  
 Holds the three core simulation scripts and any helpers:  
-• `Main_IL_PDNOMA_Proposed.py` – your PD-NOMA, decentralized, energy-efficient Q-learning algorithm  
+• `Main_IL_PDNOMA_Proposed.py` – PD-NOMA, decentralized, energy-efficient Q-learning algorithm for AoI minimization 
 • `Main_IL_Random.py` – IRSA (Irregular Repeated Slotted ALOHA) baseline  
 • `Main_IL_Greedy.py` – available-power-based greedy benchmark  
 • plus any utility modules (e.g. config loaders, common functions)
