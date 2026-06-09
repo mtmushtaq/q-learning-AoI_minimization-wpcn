@@ -76,6 +76,32 @@ Information (AoI)** under:
 
 ---
 
+## 📂 Directory Structure
+
+├── **Main Simulators/**  
+│   Contains the core simulation code:  
+│   • `pd_noma_q_learning.py` – your proposed PD-NOMA Q-learning algorithm  
+│   • `greedy_baseline.py` – greedy access scheme for comparison  
+│   • `random_baseline.py` – random access scheme for comparison  
+│   • any other helper modules you call from these scripts  
+
+├── **Results/**  
+│   Stores all raw output from the simulators (e.g. `.csv`, `.mat`, `.json`)  
+│   • per-run metrics, logs, traces, etc.  
+
+├── **Comparison Plot Codes/**  
+│   Contains scripts that read from `Results/` and generate the figures in the paper:  
+│   • `plot_aoi_comparison.py`  
+│   • `plot_energy_vs_age.py`  
+│   • etc.  
+
+├── **Extra PDF Plots/**  
+│   High-resolution PDF versions of key plots for inclusion in slides/papers  
+
+├── **Extra Data/**  
+│   Any additional datasets or config files used by the simulators  
+
+
 ## Contact
 
 **Muhammad Tauseef Mushtaq**
