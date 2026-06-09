@@ -76,31 +76,23 @@ Information (AoI)** under:
 
 ---
 
-## 📂 Directory Structure
+## Directory Structure
 
-├── **Main Simulators/**  
-│   Contains the core simulation code:  
-│   • `pd_noma_q_learning.py` – your proposed PD-NOMA Q-learning algorithm  
-│   • `greedy_baseline.py` – greedy access scheme for comparison  
-│   • `random_baseline.py` – random access scheme for comparison  
-│   • any other helper modules you call from these scripts  
+**Main Simulators/**  
+Holds the three core simulation scripts and any helpers:  
+• `Main_IL_PDNOMA_Proposed.py` – your PD-NOMA, decentralized, energy-efficient Q-learning algorithm  
+• `Main_IL_Random.py` – IRSA (Irregular Repeated Slotted ALOHA) baseline  
+• `Main_IL_Greedy.py` – available-power-based greedy benchmark  
+• plus any utility modules (e.g. config loaders, common functions)
 
-├── **Results/**  
-│   Stores all raw output from the simulators (e.g. `.csv`, `.mat`, `.json`)  
-│   • per-run metrics, logs, traces, etc.  
+**Results/**  
+All the performance results/comparisons from simulators are in PDF and PNG formats.
 
-├── **Comparison Plot Codes/**  
-│   Contains scripts that read from `Results/` and generate the figures in the paper:  
-│   • `plot_aoi_comparison.py`  
-│   • `plot_energy_vs_age.py`  
-│   • etc.  
+**Comparison Plot Codes/**  
+Scripts that generate the paper’s plots (for example, `plot_aoi_comparison.py` or `plot_energy_vs_age.py`).
 
-├── **Extra PDF Plots/**  
-│   High-resolution PDF versions of key plots for inclusion in slides/papers  
-
-├── **Extra Data/**  
-│   Any additional datasets or config files used by the simulators  
-
+**Extra PDF Plots/**  
+High-resolution PDF versions of key figures, ready to drop into slides or manuscripts.
 
 ## Contact
 
